@@ -221,6 +221,7 @@ with st.sidebar:
          "3️⃣ Hurricane NG Premium (P3)",
          "4️⃣ Storm Surprise → NG (P4)",
          "5️⃣ Winter ENSO → NG (P5)",
+         "🔬 Walk-Forward Validation",
          "🛠️ Custom Predictor",
          "📜 About"],
         label_visibility="collapsed",
@@ -659,6 +660,267 @@ def page_p5():
 
 
 # =============================================================================
+# PAGE: WALK-FORWARD VALIDATION
+# =============================================================================
+def _split_backtest(name: str, asset: str, signal: pd.Series, returns: pd.Series,
+                    split_date: pd.Timestamp, freq: str = "monthly"):
+    """Run the same predictor twice: once on data ≤ split_date, once on data > split_date."""
+    sig_is  = signal[signal.index  <= split_date]
+    sig_oos = signal[signal.index  >  split_date]
+    ret_is  = returns[returns.index <= split_date]
+    ret_oos = returns[returns.index >  split_date]
+    res_is,  df_is  = run_backtest(name + " (IS)",  asset, sig_is,  ret_is,  freq)
+    res_oos, df_oos = run_backtest(name + " (OOS)", asset, sig_oos, ret_oos, freq)
+    return res_is, res_oos, df_is, df_oos
+
+
+def _p1_signal(oni: pd.DataFrame, asset: str, threshold: float = 0.5) -> pd.Series:
+    a = oni["anom"]
+    sig = pd.Series(0.0, index=a.index)
+    # Per the original P1 mapping
+    if asset in ("NG", "KC"):
+        sig[a <= -threshold] = +1; sig[a >=  threshold] = -1
+    elif asset == "CC":
+        sig[a >=  threshold] = +1; sig[a <= -threshold] = -1
+    elif asset == "OJ":
+        sig[a >=  threshold] = +1
+    return sig
+
+
+def _p2_signal(oni: pd.DataFrame, lag: int, threshold: float = 0.5) -> pd.Series:
+    a = oni["anom"]
+    lagged = a.shift(lag)
+    sig = pd.Series(0.0, index=lagged.index)
+    sig[lagged <= -threshold] = +1
+    sig[lagged >=  threshold] = -1
+    return sig
+
+
+def _p3_post_peak_signal(returns: pd.Series) -> pd.Series:
+    """P3 post-peak: short NG in Sep, Oct (signal set at end of Aug, Sep)."""
+    sig = pd.Series(0.0, index=returns.index)
+    months_to_set = {8, 9}
+    for ts in sig.index:
+        if ts.month in months_to_set:
+            sig.loc[ts] = -1.0
+    return sig
+
+
+def verdict_html(verdict: str, sharpe: float, t_stat: float) -> str:
+    cls = {"REAL": "real", "WEAK": "weak", "NOISE": "noise", "INSUFFICIENT": "weak"}.get(verdict, "weak")
+    return f'<span class="tag {cls}">{verdict}</span>'
+
+
+def page_walk_forward():
+    st.markdown("### 🔬 Walk-Forward Validation")
+    st.caption("The two REAL signals in the headline scoreboard are in-sample on a single window. "
+               "Walk-forward splits the data: fit/observe on the early portion, then test the "
+               "exact same rule on a held-out later portion. Surviving signals are more credible.")
+
+    # --- Split date control ---
+    col_a, col_b = st.columns([1, 2])
+    with col_a:
+        split_year = st.slider(
+            "Split point (end of in-sample window)",
+            min_value=2010, max_value=2023, value=2018, step=1,
+        )
+    with col_b:
+        st.markdown(f"""
+<div class="callout">
+  <div class="lbl">Split — {split_year}</div>
+  <p>In-sample: 2000-01 → {split_year}-12. &nbsp;
+     Out-of-sample: {split_year+1}-01 → 2026-05 ({2026 - split_year - 1} years).</p>
+</div>
+""", unsafe_allow_html=True)
+    split_date = pd.Timestamp(f"{split_year}-12-31") + pd.offsets.MonthEnd(0)
+
+    # --- Run each candidate predictor on the split ---
+    st.markdown("#### Split-sample test — default parameters")
+    st.caption("Each predictor uses its original parameters. We just split the same backtest in two and compare.")
+
+    oni = cached_oni()
+
+    candidates = [
+        # (label, asset, signal builder, expected-direction note)
+        ("P1.NG  (La Niña long)",                  "NG", lambda: _p1_signal(oni, "NG")),
+        ("P1.KC  (La Niña long)",                  "KC", lambda: _p1_signal(oni, "KC")),
+        ("P1.CC  (El Niño long)",                  "CC", lambda: _p1_signal(oni, "CC")),
+        ("P1.OJ  (El Niño long)",                  "OJ", lambda: _p1_signal(oni, "OJ")),
+        ("P2.KC  lag-13 (literal)",                "KC", lambda: _p2_signal(oni, 13)),
+        ("P3.NG  post-peak short (literal)",       "NG", lambda: _p3_post_peak_signal(cached_monthly_returns("NG"))),
+    ]
+
+    rows = []
+    equity_traces = []
+    for label, asset, builder in candidates:
+        sig = builder()
+        ret = cached_monthly_returns(asset)
+        res_is, res_oos, df_is, df_oos = _split_backtest(label, asset, sig, ret, split_date)
+
+        # Survival check: same direction, both Sharpes meaningful
+        same_dir = (res_is.sharpe_ann * res_oos.sharpe_ann) > 0
+        ratio = (res_oos.sharpe_ann / res_is.sharpe_ann) if res_is.sharpe_ann != 0 else 0.0
+        if not same_dir:
+            survived = "❌ Flipped"
+        elif abs(res_oos.sharpe_ann) >= abs(res_is.sharpe_ann) * 0.5 and abs(res_oos.t_stat) >= 1.0:
+            survived = "✅ Held up"
+        elif abs(res_oos.sharpe_ann) >= abs(res_is.sharpe_ann) * 0.2:
+            survived = "⚠️ Decayed"
+        else:
+            survived = "❌ Collapsed"
+
+        rows.append({
+            "Predictor": label,
+            "IS Sharpe":   f"{res_is.sharpe_ann:+.2f}",
+            "OOS Sharpe":  f"{res_oos.sharpe_ann:+.2f}",
+            "IS t-stat":   f"{res_is.t_stat:+.2f}",
+            "OOS t-stat":  f"{res_oos.t_stat:+.2f}",
+            "IS hit %":    f"{res_is.hit_rate * 100:.1f}",
+            "OOS hit %":   f"{res_oos.hit_rate * 100:.1f}",
+            "Survived?":   survived,
+        })
+
+        # For the equity overlay: concat IS + OOS so the curve is continuous
+        full_df_strat = pd.concat([df_is["strat_ret"], df_oos["strat_ret"]]).sort_index()
+        eq = np.exp(full_df_strat.cumsum())
+        equity_traces.append((label, eq))
+
+    df_table = pd.DataFrame(rows)
+    st.dataframe(df_table, hide_index=True, use_container_width=True)
+
+    # --- Equity overlay ---
+    st.markdown("#### Equity curves (split highlighted)")
+    fig = go.Figure()
+    color_palette = [COLOR_TEAL, COLOR_GOLD, COLOR_GREEN, COLOR_AMBER, COLOR_NAVY, COLOR_RED]
+    for (label, eq), c in zip(equity_traces, color_palette):
+        fig.add_trace(go.Scatter(
+            x=eq.index, y=eq.values, name=label,
+            line=dict(color=c, width=1.6), mode="lines",
+        ))
+    fig.add_vline(x=split_date, line_dash="dash", line_color="#444",
+                  annotation_text="IS / OOS split", annotation_position="top")
+    fig.add_hline(y=1.0, line_color="#bbb", line_width=0.5, line_dash="dot")
+    fig.update_layout(
+        title="Per-predictor cumulative equity (literal academic direction, no inversion)",
+        height=440, **PLOT_LAYOUT,
+        yaxis=dict(title="Cumulative equity (1.0 = start)"),
+        xaxis=dict(title=""),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("""
+<div class="callout">
+  <div class="lbl">How to read this</div>
+  <p>
+  Sharpe with the academic sign is what we backtest. A negative Sharpe that
+  <em>stays negative</em> across IS and OOS is a real (inverted) edge. A Sharpe
+  that flips sign between IS and OOS is in-sample overfit, not a real predictor.
+  </p>
+</div>
+""", unsafe_allow_html=True)
+
+    # =========================================================================
+    # PARAMETER-FIT WALK-FORWARD — P2 specifically
+    # =========================================================================
+    st.markdown("---")
+    st.markdown("### 🔍 Parameter-fit walk-forward — P2 ENSO lag → KC")
+    st.caption("The lag-sensitivity sweep is the strongest evidence P2 isn't a single-point fluke. "
+               "Here we let the IS window CHOOSE the best lag, then test that lag's performance "
+               "OOS without further tuning. This is the harder, more honest test.")
+
+    ret_kc = cached_monthly_returns("KC")
+    is_results = []
+    for k in range(1, 25):
+        sig = _p2_signal(oni, k)
+        sig_is = sig[sig.index <= split_date]
+        ret_is = ret_kc[ret_kc.index <= split_date]
+        r, _ = run_backtest(f"k={k}", "KC", sig_is, ret_is, "monthly")
+        is_results.append((k, r.sharpe_ann, r.t_stat))
+
+    # Best IS lag — the one with most negative Sharpe (since literal-direction strat loses)
+    # and the user wants the strongest |Sharpe|.
+    is_results_df = pd.DataFrame(is_results, columns=["lag", "is_sharpe", "is_t"])
+    # Pick the lag with maximum |Sharpe| in the IS window
+    is_results_df["abs_sharpe"] = is_results_df["is_sharpe"].abs()
+    best_row = is_results_df.loc[is_results_df["abs_sharpe"].idxmax()]
+    best_lag = int(best_row["lag"])
+    best_is_sharpe = float(best_row["is_sharpe"])
+
+    # Apply that lag to OOS
+    sig_full = _p2_signal(oni, best_lag)
+    sig_oos = sig_full[sig_full.index > split_date]
+    ret_oos = ret_kc[ret_kc.index > split_date]
+    r_oos, df_oos = run_backtest(f"P2 lag={best_lag} OOS", "KC", sig_oos, ret_oos, "monthly")
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Best IS lag", f"{best_lag} mo",
+              help="The lag with maximum |Sharpe| in the in-sample window")
+    c2.metric("IS Sharpe", f"{best_is_sharpe:+.2f}")
+    c3.metric("OOS Sharpe", f"{r_oos.sharpe_ann:+.2f}",
+              delta=f"{r_oos.sharpe_ann - best_is_sharpe:+.2f} vs IS")
+    c4.metric("OOS t-stat", f"{r_oos.t_stat:+.2f}")
+
+    # Verdict
+    same_sign = (best_is_sharpe * r_oos.sharpe_ann) > 0
+    if same_sign and abs(r_oos.t_stat) >= 1.5:
+        verdict_text = "✅ The inverted P2 signal survives parameter-fit walk-forward."
+        verdict_color = "callout"
+    elif same_sign and abs(r_oos.t_stat) >= 1.0:
+        verdict_text = "⚠️ Direction holds OOS but t-stat is weaker — partial survival."
+        verdict_color = "callout"
+    elif same_sign:
+        verdict_text = "❌ Direction holds OOS but Sharpe/t-stat decayed — likely overfit."
+        verdict_color = "callout warn"
+    else:
+        verdict_text = "❌ OOS Sharpe FLIPPED sign — the IS edge was likely overfit."
+        verdict_color = "callout warn"
+
+    st.markdown(f"""
+<div class="{verdict_color}">
+  <div class="lbl">Walk-forward verdict — P2</div>
+  <p>{verdict_text}</p>
+</div>
+""", unsafe_allow_html=True)
+
+    # IS lag sweep chart with best lag marked
+    fig_lag = go.Figure(go.Bar(
+        x=is_results_df["lag"], y=is_results_df["is_sharpe"],
+        marker_color=[
+            COLOR_NAVY if k == best_lag
+            else (COLOR_GREEN if abs(t) >= 2 and s > 0 else
+                  COLOR_RED   if abs(t) >= 2 and s < 0 else
+                  COLOR_AMBER if abs(t) >= 1 else
+                  "#bdc3c7")
+            for k, s, t in zip(is_results_df["lag"], is_results_df["is_sharpe"], is_results_df["is_t"])
+        ],
+        hovertemplate="Lag %{x} mo<br>IS Sharpe %{y:+.2f}<extra></extra>",
+    ))
+    fig_lag.add_hline(y=0, line_color="#444", line_width=0.7)
+    fig_lag.update_layout(
+        title=f"IS Sharpe by lag (in-sample only, ≤ {split_year}). Best lag highlighted in navy.",
+        height=300, **PLOT_LAYOUT,
+        xaxis=dict(title="ENSO anomaly lag (months)", tickmode="linear"),
+        yaxis=dict(title="IS Sharpe"),
+        showlegend=False,
+    )
+    st.plotly_chart(fig_lag, use_container_width=True)
+
+    st.markdown("""
+<div class="callout warn">
+  <div class="lbl">Methodological note</div>
+  <p>
+  This test selects the best lag using ONLY in-sample data, then evaluates the
+  unchanged lag out-of-sample. That's the standard walk-forward protocol — no
+  peeking at OOS during fitting. A more conservative test would also require
+  the OOS t-stat to clear |t| ≥ 2 on the smaller OOS sample alone, which is a
+  high bar when OOS has only ~80 monthly observations.
+  </p>
+</div>
+""", unsafe_allow_html=True)
+
+
+# =============================================================================
 # PAGE: CUSTOM PREDICTOR
 # =============================================================================
 def page_custom():
@@ -805,6 +1067,7 @@ ROUTES: dict[str, Callable] = {
     "3️⃣ Hurricane NG Premium (P3)":      page_p3,
     "4️⃣ Storm Surprise → NG (P4)":       page_p4,
     "5️⃣ Winter ENSO → NG (P5)":          page_p5,
+    "🔬 Walk-Forward Validation":        page_walk_forward,
     "🛠️ Custom Predictor":              page_custom,
     "📜 About":                         page_about,
 }
