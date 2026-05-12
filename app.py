@@ -663,37 +663,79 @@ def page_p5():
 # =============================================================================
 def page_custom():
     st.markdown("### 🛠️ Custom Predictor — build your own signal")
-    st.caption("Combine ENSO state + ENSO lag + named-storm count into a custom signal. "
-               "Tweak the weights and threshold to find your own variant.")
+    st.caption("Combine ENSO state at multiple lags into a composite signal. "
+               "Move the sliders and watch the composite, the position, and the metrics all update live.")
 
     col_a, col_b = st.columns([1, 1])
     with col_a:
         asset = st.selectbox("Underlying", list(FUTURES.keys()), index=0)
-        w_state = st.slider("Weight: current ENSO state",        -1.0, 1.0, +0.5, step=0.1)
-        w_lag12 = st.slider("Weight: ENSO state 12 months ago",  -1.0, 1.0, +0.0, step=0.1)
-        w_lag6  = st.slider("Weight: ENSO state 6 months ago",   -1.0, 1.0, +0.0, step=0.1)
+        w_state = st.slider("Weight: current ENSO state",         -1.0, 1.0, +0.5, step=0.05)
+        w_lag6  = st.slider("Weight: ENSO state 6 months ago",    -1.0, 1.0, +0.0, step=0.05)
+        w_lag12 = st.slider("Weight: ENSO state 12 months ago",   -1.0, 1.0, +0.0, step=0.05)
     with col_b:
-        threshold = st.slider("ENSO threshold (|°C|)", 0.0, 1.5, 0.5, step=0.1)
-        long_thresh = st.slider("Composite signal threshold (go long if score ≥)", 0.0, 2.0, 0.4, step=0.1)
+        threshold = st.slider("ENSO state threshold (|°C|)", 0.0, 1.5, 0.5, step=0.05,
+                              help="ONI anomaly threshold for labeling La Niña / El Niño")
+        long_thresh = st.slider("Composite trigger (|score| ≥ trigger to take position)",
+                                0.05, 2.0, 0.25, step=0.05,
+                                help="Position is taken only when the composite score exceeds ±trigger")
+        invert = st.checkbox("Invert sign (short La Niña instead of long)", value=False)
 
     oni = cached_oni()
     a = oni["anom"]
     state = pd.Series(0.0, index=a.index)
-    state[a <= -threshold] = +1   # La Niña
-    state[a >=  threshold] = -1   # El Niño
+    state[a <= -threshold] = +1   # La Niña → +1
+    state[a >=  threshold] = -1   # El Niño → -1
 
     composite = (w_state * state
-                 + w_lag6 * state.shift(6)
+                 + w_lag6  * state.shift(6)
                  + w_lag12 * state.shift(12)).fillna(0)
+
     sig = pd.Series(0.0, index=composite.index)
     sig[composite >=  long_thresh] = +1
     sig[composite <= -long_thresh] = -1
+    if invert:
+        sig = -sig
 
     ret = cached_monthly_returns(asset)
     res, df = run_backtest(f"Custom ({asset})", asset, sig, ret, "monthly")
+
+    # Live diagnostics row — shows the user something visibly changes every slider tick
+    d1, d2, d3 = st.columns(3)
+    d1.metric("Active months", f"{int((sig != 0).sum())}",
+              help="Months where the composite crossed ±trigger")
+    d2.metric("Composite range",
+              f"{composite.min():+.2f} → {composite.max():+.2f}")
+    d3.metric("Mean |composite|", f"{composite.abs().mean():.3f}",
+              help="How active your composite is on average")
+
     metric_row(res)
-    equity_chart(df, f"Custom composite on {asset}", with_benchmark=df["ret"], log_scale=False)
-    signal_position_chart(df, "Position over time")
+    equity_chart(df, f"Custom composite on {asset}", with_benchmark=df["ret"])
+
+    # Composite score chart — clearly visible change on every slider tick,
+    # even when the binary signal doesn't cross the threshold.
+    st.markdown("#### Composite score over time")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=composite.index, y=composite.values, name="Composite score",
+        line=dict(color=COLOR_NAVY, width=1.4), mode="lines",
+    ))
+    fig.add_hline(y=+long_thresh, line_dash="dash", line_color=COLOR_GREEN,
+                  annotation_text=f"+{long_thresh:.2f} (long trigger)",
+                  annotation_position="right", annotation_font_color=COLOR_GREEN)
+    fig.add_hline(y=-long_thresh, line_dash="dash", line_color=COLOR_RED,
+                  annotation_text=f"−{long_thresh:.2f} (short trigger)",
+                  annotation_position="right", annotation_font_color=COLOR_RED)
+    fig.add_hline(y=0, line_color="#444", line_width=0.6)
+    fig.update_layout(
+        title="Composite = w_state · state + w_lag6 · state(t−6) + w_lag12 · state(t−12)",
+        height=260, **PLOT_LAYOUT,
+        yaxis=dict(title="Composite score"),
+        xaxis=dict(title=""),
+        showlegend=False,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    signal_position_chart(df, "Resulting position (after applying trigger)")
 
     st.markdown(f"""
 <div class="callout warn">
