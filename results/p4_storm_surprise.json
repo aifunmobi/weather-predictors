@@ -1,0 +1,19 @@
+{
+  "NG": {
+    "name": "P4 Storm Surprise (NG Sep)",
+    "underlying": "NG",
+    "freq": "annual",
+    "n_obs": 25,
+    "n_active": 18,
+    "mean_ret": 0.03157479147737882,
+    "vol_ret": 0.15686806301459383,
+    "sharpe_ann": 0.20128247184668394,
+    "t_stat": 1.0064123592334195,
+    "hit_rate": 0.6666666666666666,
+    "max_dd": -0.4357397716025717,
+    "total_log_ret": 0.7893697869344705,
+    "sample_start": "2000-08-31",
+    "sample_end": "2024-08-31",
+    "verdict": "WEAK"
+  }
+}

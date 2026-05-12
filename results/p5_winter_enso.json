@@ -1,0 +1,19 @@
+{
+  "NG": {
+    "name": "P5 Winter ENSO (NG)",
+    "underlying": "NG",
+    "freq": "annual",
+    "n_obs": 26,
+    "n_active": 18,
+    "mean_ret": -0.030262142983906226,
+    "vol_ret": 0.3027416588171901,
+    "sharpe_ann": -0.09996028660918435,
+    "t_stat": -0.5096994520045585,
+    "hit_rate": 0.5,
+    "max_dd": -0.716349050801649,
+    "total_log_ret": -0.7868157175815619,
+    "sample_start": "2000-10-31",
+    "sample_end": "2025-10-31",
+    "verdict": "NOISE"
+  }
+}

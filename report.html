@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Weather Predictors With Measurable Edge</title>
+<style>
+  :root {
+    --teal-deep:    #134e4a;
+    --teal:         #1a5e5b;
+    --teal-mid:     #2a7a76;
+    --teal-light:   #b8d4d1;
+    --teal-bg:      #e9f1f0;
+    --ink:          #2c3e50;
+    --ink-soft:     #3d4f5c;
+    --grey:         #6b7c85;
+    --grey-light:   #9aa7b0;
+    --rule:         #d0d8dc;
+    --paper:        #ffffff;
+    --paper-cool:   #fafbfb;
+  }
+
+  @page { size: Letter; margin: 0.85in; }
+  @page :first { margin: 0; }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    font-family: "Helvetica Neue", "Helvetica", "Arial", "DejaVu Sans", sans-serif;
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .cover {
+    page-break-after: always;
+    background: var(--teal-deep);
+    color: #ffffff;
+    min-height: 11in;
+    width: 8.5in;
+    margin: 0; padding: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .cover-top-rule, .cover-bottom-rule { height: 14px; background: var(--teal-mid); }
+  .cover-body { padding: 1.1in 0.95in 0.7in 0.95in; flex: 1; display: flex; flex-direction: column; }
+  .cover-pill {
+    display: inline-block; background: var(--teal-mid); color: #ffffff;
+    padding: 8px 22px; border-radius: 24px;
+    font-size: 10pt; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase;
+    align-self: flex-start; margin-bottom: 1.05in;
+  }
+  .cover-title {
+    font-size: 50pt; font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.01em; color: #ffffff; margin: 0 0 0.45in 0;
+  }
+  .cover-subtitle {
+    font-size: 20pt; font-weight: 400; line-height: 1.25;
+    color: rgba(255,255,255,0.86); margin: 0 0 0.4in 0; max-width: 6.1in;
+  }
+  .cover-blurb {
+    font-size: 10.5pt; line-height: 1.55; color: rgba(255,255,255,0.88);
+    max-width: 6.4in; margin: 0;
+  }
+  .cover-divider { height: 1px; background: rgba(255,255,255,0.28); margin: 0.35in 0 0.28in 0; }
+  .cover-meta { font-size: 10pt; color: rgba(255,255,255,0.85); letter-spacing: 0.02em; margin-bottom: 0.55in; }
+  .cover-meta .pipe { color: rgba(255,255,255,0.4); padding: 0 14px; }
+  .kpi-row { display: flex; gap: 14px; margin-bottom: 0.45in; flex-wrap: wrap; }
+  .kpi {
+    background: var(--teal-mid); border-radius: 6px;
+    padding: 18px 18px 16px 18px; flex: 1; min-width: 1.4in; text-align: center;
+  }
+  .kpi .num { font-size: 26pt; font-weight: 800; color: #ffffff; line-height: 1.0; display: block; margin-bottom: 6px; }
+  .kpi .lab { font-size: 9pt; color: rgba(255,255,255,0.88); line-height: 1.25; display: block; }
+  .kpi.wide .num { font-size: 14pt; font-weight: 700; }
+  .kpi.snug .num { font-size: 20pt; font-weight: 800; }
+  .cover-confidential {
+    text-align: center; font-size: 9pt; font-weight: 600; letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.90); margin-top: auto; padding-bottom: 0.2in;
+  }
+
+  h1.section {
+    font-size: 26pt; color: var(--teal); font-weight: 800;
+    letter-spacing: -0.005em; margin: 0 0 0.12in 0; padding-top: 0.22in;
+    page-break-after: avoid;
+  }
+  h1.section + .section-rule { border-bottom: 2px solid var(--teal); margin-bottom: 0.28in; }
+  h2.subsection {
+    font-size: 14pt; color: var(--teal); font-weight: 700;
+    margin: 0.32in 0 0.12in 0; page-break-after: avoid;
+  }
+  h3.minor {
+    font-size: 11.5pt; color: var(--ink); font-weight: 700;
+    margin: 0.22in 0 0.08in 0; page-break-after: avoid;
+  }
+  p { margin: 0 0 0.13in 0; text-align: justify; text-justify: inter-word; hyphens: auto; }
+  p.lede { font-size: 11pt; color: var(--ink-soft); }
+  ul, ol { margin: 0.05in 0 0.18in 0; padding-left: 0.28in; }
+  li { margin-bottom: 0.06in; line-height: 1.5; }
+  strong { color: var(--ink); font-weight: 700; }
+  em { color: var(--ink-soft); }
+  code, pre { font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 9.4pt; }
+  pre {
+    background: var(--paper-cool); border-left: 3px solid var(--teal);
+    padding: 12px 14px; margin: 0.12in 0; border-radius: 0 3px 3px 0;
+    overflow-x: auto; line-height: 1.45; page-break-inside: avoid;
+  }
+  code { color: var(--teal); background: var(--paper-cool); padding: 0 4px; border-radius: 2px; }
+  pre code { color: var(--ink); background: transparent; padding: 0; }
+
+  .tag {
+    display: inline-block; padding: 1px 7px; border-radius: 3px;
+    font-size: 8.4pt; font-weight: 700; letter-spacing: 0.04em; vertical-align: 1px;
+  }
+  .tag.high  { background: #d4edda; color: #155724; }
+  .tag.med   { background: #fff3cd; color: #856404; }
+  .tag.low   { background: #f8d7da; color: #721c24; }
+  .tag.real  { background: #d4edda; color: #155724; }
+  .tag.weak  { background: #fff3cd; color: #856404; }
+  .tag.noise { background: #f8d7da; color: #721c24; }
+
+  table {
+    width: 100%; border-collapse: collapse;
+    margin: 0.16in 0 0.22in 0; font-size: 9.7pt; page-break-inside: avoid;
+  }
+  thead th {
+    background: var(--teal); color: #ffffff; text-align: left;
+    padding: 8px 10px; font-weight: 700; font-size: 9.6pt;
+    letter-spacing: 0.01em; border-bottom: 1px solid var(--teal-deep);
+  }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--ink); }
+  tbody tr:nth-child(even) td { background: var(--paper-cool); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .key-finding {
+    background: var(--teal-bg); border-left: 4px solid var(--teal);
+    padding: 14px 18px; margin: 0.18in 0 0.22in 0;
+    border-radius: 0 4px 4px 0; page-break-inside: avoid;
+  }
+  .key-finding .lbl {
+    font-size: 9pt; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 6px;
+  }
+  .key-finding p { margin: 0; }
+
+  .warning {
+    background: #fff3cd; border-left: 4px solid #856404;
+    padding: 14px 18px; margin: 0.18in 0 0.22in 0;
+    border-radius: 0 4px 4px 0; page-break-inside: avoid;
+  }
+  .warning .lbl {
+    font-size: 9pt; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #856404; margin-bottom: 6px;
+  }
+  .warning p { margin: 0; color: #6c5500; }
+
+  figure { margin: 0.22in 0 0.24in 0; page-break-inside: avoid; text-align: center; }
+  figure img { max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 3px; }
+  figcaption { font-size: 9pt; color: var(--grey); margin-top: 8px; font-style: italic; text-align: center; }
+  figcaption .fignum { font-weight: 700; color: var(--teal); font-style: normal; margin-right: 6px; }
+
+  .toc-list { list-style: none; padding: 0; margin: 0.15in 0 0 0; }
+  .toc-list > li { margin-bottom: 0.10in; }
+  .toc-list .toc-section { font-weight: 700; font-size: 11pt; color: var(--ink); }
+  .toc-list .toc-sub { font-weight: 400; font-size: 10pt; color: var(--grey); margin-left: 0.28in; display: block; margin-top: 4px; }
+
+  h2.subsection, h3.minor, table, figure, .key-finding, .warning, pre { page-break-inside: avoid; }
+  section.body-section { page-break-before: always; }
+  section.body-section:first-of-type { page-break-before: auto; }
+</style>
+</head>
+<body>
+
+<!-- ============= COVER ============= -->
+<div class="cover">
+  <div class="cover-top-rule"></div>
+  <div class="cover-body">
+    <span class="cover-pill">Quant Research &mdash; Backtest Note</span>
+
+    <h1 class="cover-title">Weather Predictors With Measurable Edge</h1>
+
+    <p class="cover-subtitle">
+      Programmable signals, public data, honest Sharpe.
+    </p>
+
+    <p class="cover-blurb">
+      Five candidate weather-based predictors tested across nine variants on
+      25 years of public futures data. Two show statistical edge with |t| &ge; 2 &mdash;
+      but both contradict the published academic direction. A working framework
+      for converting forecast revisions into programmable strategy, with explicit
+      flagging of which signals are real, which are weak, and which are noise.
+    </p>
+
+    <div class="cover-divider"></div>
+
+    <div class="cover-meta">
+      May 2026 <span class="pipe">|</span>
+      NG, KC, CC, OJ, RB <span class="pipe">|</span>
+      Backtest Memo &mdash; Working Draft
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <span class="num">9</span>
+        <span class="lab">Predictor variants<br>tested</span>
+      </div>
+      <div class="kpi">
+        <span class="num">2 / 9</span>
+        <span class="lab">Statistically significant<br>(|t| &ge; 2)</span>
+      </div>
+      <div class="kpi">
+        <span class="num">+0.55</span>
+        <span class="lab">Best Sharpe<br>(inverted P3, NG)</span>
+      </div>
+      <div class="kpi snug">
+        <span class="num">25&nbsp;yrs</span>
+        <span class="lab">Backtest window<br>2000&ndash;2026</span>
+      </div>
+    </div>
+
+    <div class="cover-confidential">
+      Internal Research &nbsp;|&nbsp; Not Investment Advice &nbsp;|&nbsp; In-Sample Sharpe
+    </div>
+  </div>
+  <div class="cover-bottom-rule"></div>
+</div>
+
+<!-- ============= TOC ============= -->
+<section class="inner content">
+  <h1 class="section">Table of Contents</h1>
+  <div class="section-rule"></div>
+
+  <ol class="toc-list">
+    <li>
+      <span class="toc-section">1. &nbsp;Executive Summary</span>
+      <span class="toc-sub">1.1 Headline results across 9 variants</span>
+      <span class="toc-sub">1.2 The two real signals (and why they're inverted)</span>
+      <span class="toc-sub">1.3 Direct answer to the forecast-revision usage question</span>
+    </li>
+    <li>
+      <span class="toc-section">2. &nbsp;Methodology</span>
+      <span class="toc-sub">2.1 Data sources (all free, all reproducible)</span>
+      <span class="toc-sub">2.2 Backtest harness</span>
+      <span class="toc-sub">2.3 Verdict thresholds</span>
+    </li>
+    <li>
+      <span class="toc-section">3. &nbsp;Per-Predictor Results</span>
+      <span class="toc-sub">3.1 P1 — ENSO state overlay (4 commodities)</span>
+      <span class="toc-sub">3.2 P2 — ENSO 13-month lag → coffee</span>
+      <span class="toc-sub">3.3 P3 — Hurricane pre-season NG premium</span>
+      <span class="toc-sub">3.4 P4 — Storm-count surprise → Sep NG</span>
+      <span class="toc-sub">3.5 P5 — Winter heating ENSO → NG</span>
+    </li>
+    <li>
+      <span class="toc-section">4. &nbsp;Using Forecast Revisions in Practice</span>
+      <span class="toc-sub">4.1 Three usage modes</span>
+      <span class="toc-sub">4.2 The "test before invert" rule</span>
+    </li>
+    <li>
+      <span class="toc-section">5. &nbsp;Honest Limitations</span>
+    </li>
+    <li>
+      <span class="toc-section">6. &nbsp;Code, Data, Reproducibility</span>
+    </li>
+  </ol>
+</section>
+
+<!-- ============= 1. EXEC SUMMARY ============= -->
+<section class="inner content body-section">
+  <h1 class="section">1.&nbsp;&nbsp;Executive Summary</h1>
+  <div class="section-rule"></div>
+
+  <h2 class="subsection">1.1&nbsp;&nbsp;Headline Results</h2>
+
+  <p class="lede">
+    Of nine predictor variants tested on 25 years of public futures data, two
+    cleared the conventional <code>|t| &ge; 2</code> significance bar. The other seven
+    were either weak or indistinguishable from noise.
+  </p>
+
+  <p>
+    The two surviving signals are <strong>statistically real</strong> &mdash; but
+    both point in the <em>opposite direction</em> from the academic literature
+    that motivated the test. This is the most important finding in the memo:
+    it is not enough to read the published claim and trade it; you must test
+    the claim, and be prepared to invert your prior when the data says so.
+  </p>
+
+  <figure>
+    <img src="charts/01-sharpe-bar.png" alt="Sharpe per predictor">
+    <figcaption>
+      <span class="fignum">Figure 1.</span> Annualized Sharpe ratio for each
+      predictor variant, as the academic claim is written. Green bars cleared
+      |t|&ge;2; amber are weak; red are noise.
+    </figcaption>
+  </figure>
+
+  <h2 class="subsection">1.2&nbsp;&nbsp;The Two Real Signals</h2>
+
+  <div class="key-finding">
+    <div class="lbl">Real Signal #1 &mdash; Coffee ENSO 13-month lag (inverted)</div>
+    <p>
+      The academic claim: La Ni&ntilde;a 13 months ago &rarr; bullish Arabica coffee.
+      The data: Sharpe <strong>−0.46</strong> with <strong>t = −2.37</strong>,
+      sample N = 316 months. The literal academic strategy <em>loses money
+      significantly</em>. The inverted strategy &mdash; <strong>short coffee
+      after La Ni&ntilde;a-13mo, long after El Ni&ntilde;o-13mo</strong> &mdash; has Sharpe
+      +0.46, t +2.37. The lag-sensitivity sweep (Figure 4) confirms the
+      reversal is consistent across lags 8&ndash;15 months, not a single-point
+      artifact.
+    </p>
+  </div>
+
+  <div class="key-finding">
+    <div class="lbl">Real Signal #2 &mdash; NG Sep&ndash;Oct accrual (inverted post-peak)</div>
+    <p>
+      The academic claim: NG implied volatility peaks at end-August, then
+      crushes. We tested whether <em>shorting</em> NG over Sep&ndash;Oct (riding the
+      vol crush) makes money. It does the opposite: Sharpe <strong>−0.55</strong>,
+      t <strong>−2.81</strong>, N = 309 months. The inverted strategy &mdash;
+      <strong>long NG from end-August through end-October</strong> &mdash; has
+      Sharpe +0.55, t +2.81. The hurricane premium persists into the realized
+      season, even as model-based intuition predicts a crush.
+    </p>
+  </div>
+
+  <p>
+    Importantly: the <em>uninverted</em> P1 ENSO Overlay signals on cocoa
+    (+0.24 Sharpe) and orange juice (+0.25 Sharpe) point in the academically
+    expected direction but fail to clear the |t| &ge; 2 bar.
+    They are suggestive but not yet investable on this sample.
+  </p>
+
+  <h2 class="subsection">1.3&nbsp;&nbsp;Direct Answer to the Practitioner Question</h2>
+
+  <p>
+    <em>&ldquo;Wie genau kann ich Weather Forecast Revision verwenden?&rdquo;</em>
+  </p>
+
+  <p>
+    Three concrete ways, in increasing order of confidence:
+  </p>
+
+  <ol>
+    <li>
+      <strong>As a programmable predictor</strong> &mdash; the framework in this memo.
+      Convert any forecast revision (ENSO state change, NHC advisory, NOAA 8&ndash;14
+      day outlook delta) into a +1 / 0 / &minus;1 position and backtest it. Most will
+      be noise, but some real signals exist (Section 1.2).
+    </li>
+    <li>
+      <strong>As a sizing/timing filter</strong> for an existing fundamental
+      thesis &mdash; e.g., if you are already long coffee on a global supply story,
+      increase exposure when the inverted ENSO-13mo signal agrees, reduce when
+      it disagrees.
+    </li>
+    <li>
+      <strong>As event-risk timing</strong> &mdash; flatten or hedge positions in
+      weather-sensitive commodities before the second-Thursday NOAA ENSO
+      release and the daily 3 PM ET 8&ndash;14 day outlook updates. The Nature
+      Communications (2024) paper documents a $12M/year options premium on
+      these dates; even without trading the direction, you can avoid being on
+      the wrong side of repricing.
+    </li>
+  </ol>
+</section>
+
+<!-- ============= 2. METHODOLOGY ============= -->
+<section class="inner content body-section">
+  <h1 class="section">2.&nbsp;&nbsp;Methodology</h1>
+  <div class="section-rule"></div>
+
+  <h2 class="subsection">2.1&nbsp;&nbsp;Data Sources (all free, all reproducible)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 22%">Series</th>
+        <th style="width: 24%">Source URL</th>
+        <th style="width: 18%">Coverage</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>NOAA ONI (Oceanic Ni&ntilde;o Index)</td>
+        <td><code>cpc.ncep.noaa.gov/data/indices/oni.ascii.txt</code></td>
+        <td>1950&ndash;2026 monthly</td>
+        <td>3-month rolling SST anomaly, Ni&ntilde;o 3.4 region</td>
+      </tr>
+      <tr>
+        <td>HURDAT2 (Atlantic tropical cyclones)</td>
+        <td><code>nhc.noaa.gov/data/hurdat/hurdat2-1851-2024-040425.txt</code></td>
+        <td>1851&ndash;2024</td>
+        <td>Best-track database, all named systems</td>
+      </tr>
+      <tr>
+        <td>CSU April hurricane forecasts</td>
+        <td><code>tropical.colostate.edu/archive.html</code></td>
+        <td>1995&ndash;2024</td>
+        <td>Pre-season named-storm forecast (scraped, see <code>data.py</code>)</td>
+      </tr>
+      <tr>
+        <td>Commodity futures</td>
+        <td>yfinance: NG=F, KC=F, CC=F, OJ=F, RB=F</td>
+        <td>2000&ndash;2026 daily</td>
+        <td>Continuous front-month from Yahoo</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="subsection">2.2&nbsp;&nbsp;Backtest Harness</h2>
+
+  <p>
+    Shared harness at <code>lib/backtest.py</code>. Each predictor produces a
+    monthly (or annual) <em>signal</em> &isin; {&minus;1, 0, +1}. The signal at time
+    <em>t</em> is held over the return realized at <em>t+1</em> &mdash; strictly no
+    look-ahead. Strategy return = position &times; log-return of underlying.
+  </p>
+
+  <p>Reported metrics per predictor:</p>
+
+  <ul>
+    <li><strong>Sharpe</strong> &mdash; annualized (&times;&radic;12 for monthly, &times;1 for annual)</li>
+    <li><strong>t-statistic</strong> &mdash; mean / (stdev / &radic;N)</li>
+    <li><strong>Hit rate</strong> &mdash; fraction of active periods with positive return</li>
+    <li><strong>Max drawdown</strong> &mdash; on log-equity curve</li>
+    <li><strong>Sample size</strong> &mdash; total N and N-active (signal &ne; 0)</li>
+  </ul>
+
+  <h2 class="subsection">2.3&nbsp;&nbsp;Verdict Thresholds</h2>
+
+  <table>
+    <thead>
+      <tr><th>Verdict</th><th>Criterion</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="tag real">REAL</span></td>     <td>|t| &ge; 2.0 and |Sharpe| &ge; 0.3</td><td>Edge significant on this sample</td></tr>
+      <tr><td><span class="tag weak">WEAK</span></td>     <td>1.0 &le; |t| &lt; 2.0</td>          <td>Suggestive but not statistically conclusive</td></tr>
+      <tr><td><span class="tag noise">NOISE</span></td>   <td>|t| &lt; 1.0</td>                   <td>Indistinguishable from random</td></tr>
+    </tbody>
+  </table>
+
+  <div class="warning">
+    <div class="lbl">Important caveat</div>
+    <p>
+      These are <strong>in-sample</strong> metrics on a single 25-year window.
+      No walk-forward optimization, no cross-validation, no transaction costs.
+      A "REAL" verdict here is necessary but not sufficient for production
+      deployment &mdash; it tells you the signal is statistically distinguishable
+      from zero, not that it will work next year.
+    </p>
+  </div>
+</section>
+
+<!-- ============= 3. PER-PREDICTOR RESULTS ============= -->
+<section class="inner content body-section">
+  <h1 class="section">3.&nbsp;&nbsp;Per-Predictor Results</h1>
+  <div class="section-rule"></div>
+
+  <h2 class="subsection">3.0&nbsp;&nbsp;Verdict Distribution</h2>
+
+  <figure>
+    <img src="charts/08-verdict-distribution.png" alt="Verdict distribution">
+    <figcaption>
+      <span class="fignum">Figure 2.</span> Verdict counts across all 9 predictor
+      variants. Only 2 cleared the |t|&ge;2 bar &mdash; and both inverted from
+      academic direction.
+    </figcaption>
+  </figure>
+
+  <figure>
+    <img src="charts/02-tstat-hitrate.png" alt="t-stat × hit rate scatter">
+    <figcaption>
+      <span class="fignum">Figure 3.</span> Each predictor variant plotted by
+      t-statistic (x) and hit rate (y). Red shading: |t| &lt; 1 (noise).
+      Amber: 1 &le; |t| &lt; 2 (weak). Outside: REAL.
+    </figcaption>
+  </figure>
+
+  <h2 class="subsection">3.1&nbsp;&nbsp;P1 — ENSO State Overlay</h2>
+
+  <p>
+    Monthly signal: long the commodity if ENSO state matches the
+    documented directional bias (e.g. La Ni&ntilde;a &rarr; long NG, El Ni&ntilde;o &rarr; short NG).
+    ONI threshold &plusmn;0.5.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Asset</th><th class="num">N</th><th class="num">Active</th><th class="num">Sharpe</th><th class="num">t-stat</th><th class="num">Hit%</th><th class="num">MaxDD</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>NG (La Niña long)</td><td class="num">309</td><td class="num">160</td><td class="num">−0.22</td><td class="num">−1.09</td><td class="num">52.5</td><td class="num">−97.5%</td><td><span class="tag weak">WEAK</span></td></tr>
+      <tr><td>KC (La Niña long)</td><td class="num">316</td><td class="num">167</td><td class="num">−0.15</td><td class="num">−0.76</td><td class="num">46.1</td><td class="num">−75.1%</td><td><span class="tag noise">NOISE</span></td></tr>
+      <tr><td>CC (El Niño long)</td><td class="num">316</td><td class="num">167</td><td class="num">+0.24</td><td class="num">+1.24</td><td class="num">55.1</td><td class="num">−51.8%</td><td><span class="tag weak">WEAK</span></td></tr>
+      <tr><td>OJ (El Niño long)</td><td class="num">296</td><td class="num">75</td><td class="num">+0.25</td><td class="num">+1.26</td><td class="num">54.7</td><td class="num">−35.8%</td><td><span class="tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    <strong>Interpretation:</strong> Cocoa and orange juice respond in the
+    direction the literature predicts, but the edge is below significance.
+    The NG and KC ENSO-state stories <em>don't hold</em> on monthly data in
+    this window &mdash; even though both are widely repeated in commodity research
+    notes. The cocoa case is also consistent with the prior weather report's
+    HIGH-confidence claim that El Ni&ntilde;o creates West African drought stress.
+  </p>
+
+  <h2 class="subsection">3.2&nbsp;&nbsp;P2 — ENSO 13-Month Lag → Coffee Arabica</h2>
+
+  <p>
+    Tests the published claim of a 13&ndash;15 month lag between ENSO state and
+    Arabica coffee returns. We sweep the lag from 1 to 24 months to check
+    whether the result is robust or single-point lucky.
+  </p>
+
+  <figure>
+    <img src="charts/03-p2-lag-sweep.png" alt="P2 lag sweep">
+    <figcaption>
+      <span class="fignum">Figure 4.</span> Sharpe ratio of the literal academic
+      strategy as a function of ENSO anomaly lag (months). Negative bars in
+      the 8&ndash;15 month range indicate <em>statistically significant edge in
+      the opposite direction</em> from the academic claim.
+    </figcaption>
+  </figure>
+
+  <p>
+    The signal isn't a single-point fluke &mdash; the entire 4&ndash;15 month band shows
+    consistent negative Sharpe (max |t| at lag 11&ndash;12). That makes the
+    reversal more likely to be a real effect than a data-snooping artifact.
+  </p>
+
+  <div class="key-finding">
+    <div class="lbl">Reading the lag sweep</div>
+    <p>
+      The strongest "anti-signal" is at <strong>lag 11&ndash;12 months</strong>
+      (t = &minus;3.16 to &minus;3.42), not exactly the 13&ndash;15 month range the
+      literature emphasizes. This shifts the implied mechanism: rather than
+      flowering &rarr; harvest (13&ndash;15mo), the signal is closer to <em>weather
+      anticipation by the futures market</em> on a one-year-out basis &mdash; and
+      anticipation in this case overshoots, producing reversion in the
+      following period.
+    </p>
+  </div>
+
+  <h2 class="subsection">3.3&nbsp;&nbsp;P3 — Hurricane Pre-Season NG Premium</h2>
+
+  <p>
+    Two variants tested:
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Variant</th><th>Logic</th><th class="num">Sharpe</th><th class="num">t-stat</th><th class="num">Hit%</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Pre-peak</td>  <td>Long NG, Jun–Aug</td>   <td class="num">−0.14</td><td class="num">−0.70</td><td class="num">44.0</td><td><span class="tag noise">NOISE</span></td></tr>
+      <tr><td>Post-peak</td> <td>Short NG, Sep–Oct</td>  <td class="num">−0.55</td><td class="num">−2.81</td><td class="num">35.3</td><td><span class="tag real">REAL</span> (inverted)</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="charts/06-ng-seasonal.png" alt="NG monthly returns">
+    <figcaption>
+      <span class="fignum">Figure 5.</span> Average NG monthly log return by
+      calendar month, 2000&ndash;2026. Positive bars in Sep cluster around the
+      hurricane premium accrual that the post-peak short fails to capture.
+    </figcaption>
+  </figure>
+
+  <p>
+    The pre-peak long fails (NG often sells off in early summer due to mild
+    weather and storage builds). The post-peak short fails in the <em>opposite
+    direction</em>: NG <strong>continues to rise</strong> through Sep&ndash;Oct rather
+    than crushing as theory predicts. This is consistent with the regime
+    change the prior weather report flagged: LNG-corridor risk has replaced
+    GoM production risk, and the demand-side hurricane premium persists later
+    in the season than the production-side premium did.
+  </p>
+
+  <h2 class="subsection">3.4&nbsp;&nbsp;P4 — Storm-Count Surprise → September NG</h2>
+
+  <p>
+    Annual signal: realized named-storm count minus CSU April forecast.
+    Position taken end-August, held over September.
+  </p>
+
+  <figure>
+    <img src="charts/07-storm-scatter.png" alt="Storm surprise scatter">
+    <figcaption>
+      <span class="fignum">Figure 6.</span> Each annual observation: storm-count
+      surprise (x) vs Aug-end &rarr; Sep-end NG log return (y). Linear fit suggests
+      modest positive relationship but small sample limits significance.
+    </figcaption>
+  </figure>
+
+  <p>
+    Result: Sharpe +0.20 (annual), t = +1.01, N-active = 18.
+    <span class="tag weak">WEAK</span> verdict. The direction is correct
+    (active hurricane seasons &rarr; bullish Sep NG) but the sample is too small
+    to call significance. With another 10&ndash;15 years of data this could become
+    REAL, but it's not investable today.
+  </p>
+
+  <h2 class="subsection">3.5&nbsp;&nbsp;P5 — Winter Heating ENSO → NG</h2>
+
+  <p>
+    Annual signal: La Ni&ntilde;a in October &rarr; long NG Nov&ndash;Feb; El Ni&ntilde;o &rarr; short.
+    Position held over the 4-month heating-season return.
+  </p>
+
+  <p>
+    Result: Sharpe &minus;0.10, t &minus;0.51, N-active = 18.
+    <span class="tag noise">NOISE</span>. The "La Ni&ntilde;a means cold winter
+    means bullish NG" claim is repeated everywhere in commodity research but
+    is statistically indistinguishable from zero on 24 years of NG futures
+    data. The 2010&ndash;11 and 2020&ndash;21 La Ni&ntilde;a winters cited as evidence are
+    cherry-picked; other La Ni&ntilde;a years (2007&ndash;08, 2017&ndash;18) saw NG fall.
+  </p>
+
+  <figure>
+    <img src="charts/04-best-equity.png" alt="Equity curves">
+    <figcaption>
+      <span class="fignum">Figure 7.</span> Cumulative log-equity curves for the
+      two inverted-significant predictors (P2 inverted KC, P3 inverted NG)
+      versus buy-and-hold benchmarks. Both inverted signals deliver positive
+      growth vs flat-to-negative buy-and-hold of the underlying.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ============= 4. USING FORECAST REVISIONS ============= -->
+<section class="inner content body-section">
+  <h1 class="section">4.&nbsp;&nbsp;Using Forecast Revisions in Practice</h1>
+  <div class="section-rule"></div>
+
+  <p class="lede">
+    The The practitioner question deserves a concrete operational answer.
+  </p>
+
+  <h2 class="subsection">4.1&nbsp;&nbsp;Three Usage Modes</h2>
+
+  <h3 class="minor">Mode A — As a programmable predictor</h3>
+
+  <p>
+    Convert any forecast revision into a +1 / 0 / &minus;1 position on a specific
+    underlying, then run the harness in <code>lib/backtest.py</code>. The
+    template is exactly what we did for P1&ndash;P5:
+  </p>
+
+  <pre><code>from lib.data import load_oni, monthly_returns
+from lib.backtest import run_backtest
+
+oni = load_oni()
+signal = build_my_signal(oni)        # +1/-1/0 series indexed by month-end
+returns = monthly_returns("NG")
+result, equity = run_backtest("my predictor", "NG", signal, returns)
+print(result.as_dict())              # Sharpe, t-stat, hit, max DD, verdict</code></pre>
+
+  <h3 class="minor">Mode B — As a sizing / timing filter</h3>
+
+  <p>
+    For a fundamental thesis that already has conviction, use the predictor
+    output as a multiplier on position size:
+  </p>
+
+  <pre><code>base_size = 1_000_000   # USD notional from fundamental view
+multiplier = 1 + 0.5 * signal_strength  # signal in [-1, +1]
+actual_size = base_size * multiplier</code></pre>
+
+  <p>
+    This lets you keep the fundamental call while letting weather information
+    flex exposure. It limits the damage from a weak weather signal (max
+    &plusmn;50% scaling) while still using the information.
+  </p>
+
+  <h3 class="minor">Mode C — As event-risk timing</h3>
+
+  <p>
+    The Nature Communications (2024) paper documented a $12M/year options
+    premium specifically on NOAA outlook release dates. Even if you don't
+    trade the direction, you should know when these dates occur and either:
+  </p>
+
+  <ul>
+    <li>Flatten weather-sensitive positions in front of the release</li>
+    <li>Buy short-dated volatility before the release if the implied is cheap</li>
+    <li>Sell volatility right after the release once the news is realized</li>
+  </ul>
+
+  <p>The key dates:</p>
+
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Release</th><th>Impact</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>2nd Thursday monthly ~9 AM ET</td><td>NOAA ENSO Diagnostic Discussion</td><td>Softs + winter NG</td></tr>
+      <tr><td>Daily 3 PM ET</td>                <td>CPC 6–10 / 8–14 day outlook</td>   <td>NG front-month</td></tr>
+      <tr><td>Mid-October annually</td>         <td>CPC Winter Outlook</td>            <td>Major NG repricing</td></tr>
+      <tr><td>5/11 AM &amp; PM ET (Jun–Nov)</td><td>NHC tropical advisory</td>          <td>NG, RBOB</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="subsection">4.2&nbsp;&nbsp;The "Test Before Invert" Rule</h2>
+
+  <div class="key-finding">
+    <div class="lbl">Operating Discipline</div>
+    <p>
+      Two of the academic claims in this memo were statistically significant
+      <em>in the opposite direction</em> from the published narrative. Do not
+      invert based on a hunch; <strong>always run the literal academic
+      strategy first</strong> on your own backtest harness, then check if the
+      inversion is robust to lag/threshold sweeps (P2's sensitivity sweep in
+      Figure 4 is the template). If the inversion holds across nearby
+      parameter values, it's more likely real than a single-lucky-lag artifact.
+    </p>
+  </div>
+</section>
+
+<!-- ============= 5. LIMITATIONS ============= -->
+<section class="inner content body-section">
+  <h1 class="section">5.&nbsp;&nbsp;Honest Limitations</h1>
+  <div class="section-rule"></div>
+
+  <h2 class="subsection">5.1&nbsp;&nbsp;Sample Size</h2>
+
+  <p>
+    25 years of futures data is short for monthly signals (~300 obs) and very
+    short for annual signals (~25 obs). P4 and P5 in particular cannot reach
+    statistical significance even if the underlying effect is real, until
+    another decade of data accumulates.
+  </p>
+
+  <h2 class="subsection">5.2&nbsp;&nbsp;In-Sample Only</h2>
+
+  <p>
+    No walk-forward, no cross-validation, no held-out test set. The two REAL
+    signals (P2 inverted KC, P3 inverted NG) could degrade significantly
+    out-of-sample. Recommended next step: re-run with a 2000&ndash;2018 fit window
+    and 2019&ndash;2026 holdout.
+  </p>
+
+  <h2 class="subsection">5.3&nbsp;&nbsp;Transaction Costs Ignored</h2>
+
+  <p>
+    All Sharpe ratios are gross. Futures bid-ask, slippage, and roll costs are
+    not modeled. P1 ENSO Overlay turns over signals frequently and would
+    likely lose 0.05&ndash;0.15 of Sharpe to costs. P2 and P3 are slower-turnover
+    and more cost-resilient.
+  </p>
+
+  <h2 class="subsection">5.4&nbsp;&nbsp;Continuous-Front Futures Bias</h2>
+
+  <p>
+    yfinance continuous front-month futures splice across contract rolls,
+    which introduces small but systematic return distortions. For production
+    deployment, repeat the backtest using a properly back-adjusted continuous
+    series (e.g. Quandl Sharadar futures, CME Datamine).
+  </p>
+
+  <h2 class="subsection">5.5&nbsp;&nbsp;The Direction-Reversal Could Be Lucky</h2>
+
+  <p>
+    The most provocative finding &mdash; that two academic claims work in reverse &mdash;
+    deserves the most skepticism. Possible benign explanations:
+  </p>
+
+  <ul>
+    <li>Sample window too short; the original studies used a different era</li>
+    <li>The academic effect existed but is now priced in via the futures
+        curve, so the realized return is the opposite (front-running)</li>
+    <li>Selection bias in which academic claims were chosen to test</li>
+  </ul>
+
+  <p>
+    The lag-sensitivity sweep (Figure 4) suggests P2's reversal is not a
+    single-point anomaly. But P3's reversal could be specific to the
+    post-2018 LNG-export era and could un-reverse if the LNG demand-shock
+    interpretation weakens.
+  </p>
+</section>
+
+<!-- ============= 6. CODE / REPRODUCIBILITY ============= -->
+<section class="inner content body-section">
+  <h1 class="section">6.&nbsp;&nbsp;Code, Data, Reproducibility</h1>
+  <div class="section-rule"></div>
+
+  <p>Everything in this memo is reproducible from a clean Python environment with:</p>
+
+  <pre><code>pip install yfinance pandas numpy scipy matplotlib</code></pre>
+
+  <p>Project structure:</p>
+
+  <pre><code>weather-predictors/
+├── lib/
+│   ├── data.py            # ONI, HURDAT2, yfinance, CSU loaders
+│   └── backtest.py        # Shared harness with metrics
+├── predictors/
+│   ├── p1_enso_overlay.py
+│   ├── p2_enso_lag.py     # includes lag sweep
+│   ├── p3_hurricane_premium.py
+│   ├── p4_storm_surprise.py
+│   └── p5_winter_enso.py
+├── results/
+│   ├── summary.json       # All 9 variants in one file
+│   ├── p[1-5]_*.json      # Per-predictor metrics
+│   └── p[1-5]_*_*.csv     # Per-period equity curves
+├── charts/                # 8 publication-quality PNGs
+├── run_all.py             # Run all predictors, write summary
+└── make_charts.py         # Regenerate all charts</code></pre>
+
+  <p>To reproduce all results from scratch:</p>
+
+  <pre><code>cd weather-predictors/
+python3 run_all.py        # ~30 seconds — downloads + caches + backtests
+python3 make_charts.py    # generate all charts</code></pre>
+
+  <p>To extend with a new predictor:</p>
+
+  <pre><code>from lib.data import load_oni, monthly_returns
+from lib.backtest import run_backtest
+
+# Step 1 — build a signal: pd.Series indexed by month-end, values in {-1,0,+1}
+def my_signal():
+    oni = load_oni()
+    sig = pd.Series(0.0, index=oni.index)
+    # ... your logic ...
+    return sig
+
+# Step 2 — backtest
+result, equity = run_backtest("my predictor", "NG", my_signal(),
+                              monthly_returns("NG"))
+print(result.as_dict())</code></pre>
+
+  <h2 class="subsection">Final Verdict Table</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Predictor</th>
+        <th class="num">Sharpe</th>
+        <th class="num">t-stat</th>
+        <th class="num">N</th>
+        <th>Verdict</th>
+        <th>Actionable?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>P1 ENSO Overlay (NG)</td>           <td class="num">−0.22</td><td class="num">−1.09</td><td class="num">309</td><td><span class="tag weak">WEAK</span></td><td>No</td></tr>
+      <tr><td>P1 ENSO Overlay (KC)</td>           <td class="num">−0.15</td><td class="num">−0.76</td><td class="num">316</td><td><span class="tag noise">NOISE</span></td><td>No</td></tr>
+      <tr><td>P1 ENSO Overlay (CC)</td>           <td class="num">+0.24</td><td class="num">+1.24</td><td class="num">316</td><td><span class="tag weak">WEAK</span></td><td>Watch list</td></tr>
+      <tr><td>P1 ENSO Overlay (OJ)</td>           <td class="num">+0.25</td><td class="num">+1.26</td><td class="num">296</td><td><span class="tag weak">WEAK</span></td><td>Watch list</td></tr>
+      <tr><td>P2 ENSO Lag-13 (KC) — inverted</td> <td class="num">+0.46</td><td class="num">+2.37</td><td class="num">316</td><td><span class="tag real">REAL</span></td><td><strong>Yes, with caveats</strong></td></tr>
+      <tr><td>P3 Hurricane pre-peak (NG)</td>     <td class="num">−0.14</td><td class="num">−0.70</td><td class="num">309</td><td><span class="tag noise">NOISE</span></td><td>No</td></tr>
+      <tr><td>P3 Hurricane post-peak (NG) — inverted</td><td class="num">+0.55</td><td class="num">+2.81</td><td class="num">309</td><td><span class="tag real">REAL</span></td><td><strong>Yes, with caveats</strong></td></tr>
+      <tr><td>P4 Storm Surprise (NG Sep)</td>     <td class="num">+0.20</td><td class="num">+1.01</td><td class="num">25</td> <td><span class="tag weak">WEAK</span></td><td>Sample too small</td></tr>
+      <tr><td>P5 Winter ENSO (NG)</td>            <td class="num">−0.10</td><td class="num">−0.51</td><td class="num">26</td> <td><span class="tag noise">NOISE</span></td><td>No</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top: 0.3in; font-size: 9pt; color: var(--grey); font-style: italic;">
+    Inverted strategies above are listed with sign flipped (i.e. "P2 inverted"
+    is short the academic-direction signal). Sample is 2000-01 through 2026-05.
+    All Sharpes are gross of transaction costs. Recommended out-of-sample
+    follow-up: re-fit on 2000-2018 and validate on 2019-2026.
+  </p>
+</section>
+
+</body>
+</html>

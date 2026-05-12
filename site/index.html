@@ -1,0 +1,1048 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather Predictors With Measurable Edge — Interactive</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+  :root {
+    --teal-deep:    #134e4a;
+    --teal:         #1a5e5b;
+    --teal-mid:     #2a7a76;
+    --teal-light:   #b8d4d1;
+    --teal-bg:      #e9f1f0;
+    --ink:          #2c3e50;
+    --ink-soft:     #3d4f5c;
+    --grey:         #6b7c85;
+    --grey-light:   #9aa7b0;
+    --rule:         #d0d8dc;
+    --paper:        #ffffff;
+    --paper-cool:   #fafbfb;
+    --green:        #3aa674;
+    --amber:        #e0a93b;
+    --red:          #c0392b;
+    --gold:         #c8963e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.6;
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============ HERO ============ */
+  .hero {
+    background: var(--teal-deep);
+    color: white;
+    padding: 90px 0 70px 0;
+    position: relative;
+    border-top: 14px solid var(--teal-mid);
+    border-bottom: 14px solid var(--teal-mid);
+  }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 32px; }
+  .pill {
+    display: inline-block; background: var(--teal-mid); color: white;
+    padding: 7px 22px; border-radius: 24px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+  .hero h1 {
+    font-size: 64px; font-weight: 800; line-height: 1.05;
+    letter-spacing: -0.015em; max-width: 900px; margin-bottom: 24px;
+  }
+  .hero .subtitle {
+    font-size: 22px; font-weight: 400; color: rgba(255,255,255,0.85);
+    max-width: 750px; margin-bottom: 32px;
+  }
+  .hero .blurb {
+    font-size: 15px; color: rgba(255,255,255,0.85);
+    max-width: 760px; margin-bottom: 42px; line-height: 1.6;
+  }
+  .hero hr {
+    border: none; height: 1px; background: rgba(255,255,255,0.22);
+    max-width: 760px; margin: 36px 0 24px 0;
+  }
+  .hero .meta {
+    font-size: 14px; color: rgba(255,255,255,0.78);
+    margin-bottom: 36px;
+  }
+  .hero .meta .pipe { color: rgba(255,255,255,0.32); padding: 0 14px; }
+
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    max-width: 760px;
+  }
+  .kpi {
+    background: var(--teal-mid); border-radius: 6px;
+    padding: 22px 16px 18px 16px; text-align: center;
+  }
+  .kpi .num { font-size: 32px; font-weight: 800; line-height: 1; margin-bottom: 8px; }
+  .kpi .num.small { font-size: 22px; }
+  .kpi .lab { font-size: 11px; color: rgba(255,255,255,0.85); line-height: 1.3; }
+
+  /* ============ STICKY NAV ============ */
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav .container {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 14px; padding-bottom: 14px;
+  }
+  .nav .brand { font-weight: 700; font-size: 13px; color: var(--teal); letter-spacing: 0.03em; }
+  .nav .links { display: flex; gap: 24px; }
+  .nav a {
+    color: var(--ink-soft); text-decoration: none; font-size: 13.5px; font-weight: 500;
+    transition: color 0.15s;
+  }
+  .nav a:hover { color: var(--teal); }
+
+  /* ============ SECTIONS ============ */
+  section.body {
+    padding: 64px 0;
+  }
+  section.body.alt { background: var(--paper-cool); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+  h2.section {
+    font-size: 30px; font-weight: 800; color: var(--teal);
+    letter-spacing: -0.01em; margin-bottom: 8px;
+  }
+  h2.section .num {
+    color: var(--grey-light); font-weight: 700; margin-right: 14px;
+  }
+  .section-rule { height: 2px; background: var(--teal); width: 60px; margin-bottom: 28px; }
+  h3 {
+    font-size: 18px; font-weight: 700; color: var(--teal);
+    margin: 32px 0 10px 0;
+  }
+  p { margin-bottom: 14px; color: var(--ink); }
+  p.lede { font-size: 17px; color: var(--ink-soft); margin-bottom: 24px; }
+  ul, ol { margin: 8px 0 16px 22px; }
+  li { margin-bottom: 6px; }
+
+  strong { color: var(--ink); font-weight: 700; }
+  em { color: var(--ink-soft); }
+
+  /* ============ TAGS ============ */
+  .tag {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; vertical-align: 1px;
+  }
+  .tag.real  { background: #d4edda; color: #155724; }
+  .tag.weak  { background: #fff3cd; color: #856404; }
+  .tag.noise { background: #f8d7da; color: #721c24; }
+  .tag.high  { background: #d4edda; color: #155724; }
+  .tag.med   { background: #fff3cd; color: #856404; }
+  .tag.low   { background: #f8d7da; color: #721c24; }
+
+  /* ============ KEY FINDING ============ */
+  .callout {
+    background: var(--teal-bg); border-left: 4px solid var(--teal);
+    padding: 18px 22px; margin: 22px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .callout .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--teal); margin-bottom: 8px;
+  }
+  .callout p { margin: 0; }
+  .callout.warn {
+    background: #fff3cd; border-left-color: #856404;
+  }
+  .callout.warn .lbl { color: #856404; }
+  .callout.warn p { color: #6c5500; }
+
+  /* ============ SCOREBOARD ============ */
+  .scoreboard { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 16px; }
+  .scoreboard thead th {
+    background: var(--teal); color: white; padding: 11px 12px;
+    text-align: left; font-weight: 700; font-size: 12.5px;
+    letter-spacing: 0.03em; cursor: pointer; user-select: none;
+    position: relative;
+  }
+  .scoreboard thead th:hover { background: var(--teal-mid); }
+  .scoreboard thead th.sortable::after {
+    content: " ⇅"; opacity: 0.4; font-size: 10px;
+  }
+  .scoreboard thead th.sorted-asc::after { content: " ↑"; opacity: 1; }
+  .scoreboard thead th.sorted-desc::after { content: " ↓"; opacity: 1; }
+  .scoreboard tbody td { padding: 10px 12px; border-bottom: 1px solid var(--rule); }
+  .scoreboard tbody tr:hover td { background: var(--teal-bg); }
+  .scoreboard tbody tr.dim td { opacity: 0.35; }
+  .scoreboard td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .chip {
+    background: var(--paper-cool); border: 1px solid var(--rule);
+    padding: 7px 14px; border-radius: 20px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+    transition: all 0.15s; user-select: none;
+  }
+  .chip:hover { border-color: var(--teal); color: var(--teal); }
+  .chip.active { background: var(--teal); color: white; border-color: var(--teal); }
+  .chip[data-filter="real"].active  { background: var(--green); border-color: var(--green); }
+  .chip[data-filter="weak"].active  { background: var(--amber); border-color: var(--amber); }
+  .chip[data-filter="noise"].active { background: var(--red);   border-color: var(--red); }
+
+  /* ============ EQUITY EXPLORER ============ */
+  .equity-explorer {
+    display: grid; grid-template-columns: 240px 1fr; gap: 24px;
+    margin-top: 24px;
+  }
+  .equity-toggles {
+    background: var(--paper-cool); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 16px;
+  }
+  .toggle-group { margin-bottom: 18px; }
+  .toggle-group h4 {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--grey); margin-bottom: 8px;
+  }
+  .toggle {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 0; cursor: pointer; user-select: none;
+    font-size: 13px;
+  }
+  .toggle input { margin: 0; cursor: pointer; }
+  .toggle .swatch {
+    width: 14px; height: 3px; border-radius: 1.5px; flex-shrink: 0;
+  }
+  .equity-chart-wrap {
+    background: white; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 16px;
+    position: relative;
+  }
+  #equity-chart-wrap { height: 440px; }
+  #lag-chart-wrap    { height: 380px; }
+  #enso-chart-wrap   { height: 260px; }
+  #seasonal-chart-wrap { height: 260px; }
+  .equity-stats {
+    display: flex; gap: 24px; padding: 12px 16px;
+    background: var(--paper-cool); border-radius: 4px; margin-bottom: 12px;
+    font-size: 12px; flex-wrap: wrap;
+  }
+  .equity-stats .stat {
+    display: flex; flex-direction: column;
+  }
+  .equity-stats .stat .v { font-weight: 700; font-size: 14px; color: var(--teal); }
+  .equity-stats .stat .l { color: var(--grey); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .scale-toggle {
+    display: flex; gap: 0; margin-bottom: 0; align-items: center;
+    background: white; padding: 4px; border-radius: 4px; border: 1px solid var(--rule);
+  }
+  .scale-toggle button {
+    background: transparent; border: none; padding: 4px 10px; cursor: pointer;
+    font-size: 11.5px; font-weight: 600; color: var(--ink-soft); border-radius: 3px;
+  }
+  .scale-toggle button.active { background: var(--teal); color: white; }
+
+  /* ============ LAG EXPLORER ============ */
+  .lag-explorer {
+    display: grid; grid-template-columns: 1fr 280px; gap: 24px;
+    margin-top: 24px;
+  }
+  .lag-chart-wrap {
+    background: white; border: 1px solid var(--rule); border-radius: 6px;
+    padding: 16px;
+  }
+  .lag-detail {
+    background: var(--paper-cool); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 20px;
+  }
+  .lag-detail .selected-lag {
+    font-size: 38px; font-weight: 800; color: var(--teal); line-height: 1;
+    margin-bottom: 4px;
+  }
+  .lag-detail .selected-label {
+    font-size: 12px; color: var(--grey); text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 18px;
+  }
+  .lag-stat-row {
+    display: flex; justify-content: space-between; padding: 8px 0;
+    border-bottom: 1px solid var(--rule); font-size: 13.5px;
+  }
+  .lag-stat-row:last-child { border-bottom: none; }
+  .lag-stat-row .l { color: var(--grey-light); }
+  .lag-stat-row .v { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* ============ CARDS ============ */
+  .cards {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+    margin: 22px 0;
+  }
+  .card {
+    background: white; border: 1px solid var(--rule); border-radius: 8px;
+    padding: 22px;
+  }
+  .card .step {
+    display: inline-block; width: 28px; height: 28px;
+    background: var(--teal); color: white;
+    border-radius: 50%; text-align: center; line-height: 28px;
+    font-weight: 700; font-size: 13px; margin-bottom: 12px;
+  }
+  .card h4 {
+    font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 8px;
+  }
+  .card p { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 0; }
+
+  /* ============ CODE ============ */
+  pre {
+    background: #1a2630; color: #e4e8eb; padding: 16px 20px;
+    border-radius: 6px; overflow-x: auto; font-size: 12.5px;
+    line-height: 1.55; margin: 12px 0;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+  }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
+  p code { background: var(--paper-cool); padding: 1px 6px; border-radius: 3px; color: var(--teal); }
+  .code-tabs {
+    display: flex; gap: 0; margin-bottom: -1px; margin-top: 16px;
+  }
+  .code-tab {
+    background: var(--paper-cool); border: 1px solid var(--rule);
+    border-bottom: none; padding: 8px 16px; cursor: pointer;
+    font-size: 12.5px; font-weight: 600; color: var(--ink-soft);
+    border-radius: 6px 6px 0 0; margin-right: 2px;
+  }
+  .code-tab.active { background: #1a2630; color: white; border-color: #1a2630; }
+  .code-panel { display: none; }
+  .code-panel.active { display: block; }
+  .code-panel pre { margin-top: 0; border-radius: 0 6px 6px 6px; }
+
+  /* ============ FOOTER ============ */
+  footer {
+    background: var(--teal-deep); color: rgba(255,255,255,0.85);
+    padding: 50px 0 40px 0; margin-top: 60px;
+    font-size: 13px; line-height: 1.7;
+  }
+  footer h5 {
+    color: white; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 12px; font-weight: 700;
+  }
+  footer a { color: var(--teal-light); text-decoration: none; }
+  footer a:hover { text-decoration: underline; color: white; }
+  footer .grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }
+  footer .small {
+    margin-top: 32px; padding-top: 24px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    font-size: 11.5px; color: rgba(255,255,255,0.55);
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 880px) {
+    .hero { padding: 60px 0 50px 0; }
+    .hero h1 { font-size: 40px; }
+    .hero .subtitle { font-size: 17px; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .nav .links { display: none; }
+    .equity-explorer { grid-template-columns: 1fr; }
+    .lag-explorer { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: 1fr; }
+    footer .grid { grid-template-columns: 1fr; gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="container">
+    <span class="pill">Quant Research &mdash; Interactive Backtest</span>
+    <h1>Weather Predictors<br>With Measurable Edge</h1>
+    <p class="subtitle">Programmable signals, public data, honest Sharpe.</p>
+    <p class="blurb">
+      Five candidate weather-based predictors tested across nine variants on
+      25 years of public futures data. Two cleared the conventional |t| &ge; 2
+      bar &mdash; and both contradicted the published academic direction. Explore
+      the equity curves, the lag-sensitivity sweep, and the underlying code.
+    </p>
+    <hr>
+    <div class="meta">
+      May 2026 <span class="pipe">|</span>
+      NG, KC, CC, OJ, RB <span class="pipe">|</span>
+      Backtest Memo &mdash; Working Draft
+    </div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="num">9</div><div class="lab">Predictor variants<br>tested</div></div>
+      <div class="kpi"><div class="num">2 / 9</div><div class="lab">Statistically significant<br>(|t| &ge; 2)</div></div>
+      <div class="kpi"><div class="num">+0.55</div><div class="lab">Best Sharpe<br>(inverted P3, NG)</div></div>
+      <div class="kpi"><div class="num small">25 yrs</div><div class="lab">Backtest window<br>2000&ndash;2026</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ NAV ============ -->
+<nav class="nav">
+  <div class="container">
+    <div class="brand">WEATHER PREDICTORS</div>
+    <div class="links">
+      <a href="#scoreboard">Scoreboard</a>
+      <a href="#explorer">Equity Explorer</a>
+      <a href="#lag-sweep">Lag Sweep</a>
+      <a href="#enso">ENSO Timeline</a>
+      <a href="#usage">Usage</a>
+      <a href="#code">Code</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ SCOREBOARD ============ -->
+<section class="body" id="scoreboard">
+  <div class="container">
+    <h2 class="section"><span class="num">01</span>The Honest Scoreboard</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      All nine predictor variants ranked. Click column headers to sort; chips below
+      to filter by verdict.
+    </p>
+
+    <div class="filter-bar">
+      <span class="chip active" data-filter="all">All (<span id="cnt-all"></span>)</span>
+      <span class="chip" data-filter="real">REAL (<span id="cnt-real"></span>)</span>
+      <span class="chip" data-filter="weak">WEAK (<span id="cnt-weak"></span>)</span>
+      <span class="chip" data-filter="noise">NOISE (<span id="cnt-noise"></span>)</span>
+    </div>
+
+    <table class="scoreboard" id="scoreboard-table">
+      <thead>
+        <tr>
+          <th class="sortable" data-sort="name">Predictor</th>
+          <th class="sortable" data-sort="asset">Asset</th>
+          <th class="sortable num" data-sort="n_obs">N</th>
+          <th class="sortable num" data-sort="n_active">Active</th>
+          <th class="sortable num sorted-desc" data-sort="sharpe">Sharpe</th>
+          <th class="sortable num" data-sort="t_stat">t-stat</th>
+          <th class="sortable num" data-sort="hit">Hit %</th>
+          <th class="sortable num" data-sort="max_dd">MaxDD</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody id="scoreboard-body"></tbody>
+    </table>
+
+    <div class="callout">
+      <div class="lbl">How to read</div>
+      <p>
+        Sharpe sign matters. A negative Sharpe with |t| &ge; 2 means the
+        literal academic strategy <em>loses money significantly</em> — the
+        <em>inverted</em> strategy would win. Both REAL entries in the table
+        are negative-Sharpe academic claims; flip the position to monetize them.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EQUITY EXPLORER ============ -->
+<section class="body alt" id="explorer">
+  <div class="container">
+    <h2 class="section"><span class="num">02</span>Equity Curve Explorer</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      Toggle individual predictors and benchmarks. Linear or log scale.
+      The two inverted strategies (P2.KC inverted, P3.post inverted) show what
+      you'd capture by trading against the academic direction.
+    </p>
+
+    <div class="equity-explorer">
+      <aside class="equity-toggles">
+        <div class="toggle-group">
+          <h4>Inverted (REAL)</h4>
+          <label class="toggle"><input type="checkbox" data-series="P2.KC.inv" checked>
+            <span class="swatch" style="background:#3aa674"></span> P2 KC inverted</label>
+          <label class="toggle"><input type="checkbox" data-series="P3.post.inv" checked>
+            <span class="swatch" style="background:#2a9d8f"></span> P3 NG post inverted</label>
+        </div>
+        <div class="toggle-group">
+          <h4>P1 ENSO Overlay</h4>
+          <label class="toggle"><input type="checkbox" data-series="P1.NG">
+            <span class="swatch" style="background:#1a3a4a"></span> P1.NG</label>
+          <label class="toggle"><input type="checkbox" data-series="P1.KC">
+            <span class="swatch" style="background:#c8963e"></span> P1.KC</label>
+          <label class="toggle"><input type="checkbox" data-series="P1.CC">
+            <span class="swatch" style="background:#e0a93b"></span> P1.CC</label>
+          <label class="toggle"><input type="checkbox" data-series="P1.OJ">
+            <span class="swatch" style="background:#c0392b"></span> P1.OJ</label>
+        </div>
+        <div class="toggle-group">
+          <h4>Buy &amp; hold</h4>
+          <label class="toggle"><input type="checkbox" data-series="BH.NG">
+            <span class="swatch" style="background:#7f8c8d"></span> NG</label>
+          <label class="toggle"><input type="checkbox" data-series="BH.KC">
+            <span class="swatch" style="background:#9aa7b0"></span> KC</label>
+          <label class="toggle"><input type="checkbox" data-series="BH.CC">
+            <span class="swatch" style="background:#9aa7b0"></span> CC</label>
+          <label class="toggle"><input type="checkbox" data-series="BH.OJ">
+            <span class="swatch" style="background:#9aa7b0"></span> OJ</label>
+        </div>
+        <div class="toggle-group">
+          <h4>Scale</h4>
+          <div class="scale-toggle">
+            <button data-scale="linear" class="active">Linear</button>
+            <button data-scale="log">Log</button>
+          </div>
+        </div>
+      </aside>
+
+      <div>
+        <div class="equity-stats" id="equity-stats"></div>
+        <div class="equity-chart-wrap" id="equity-chart-wrap">
+          <canvas id="equity-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LAG SWEEP ============ -->
+<section class="body" id="lag-sweep">
+  <div class="container">
+    <h2 class="section"><span class="num">03</span>P2 — ENSO Lag Sensitivity</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      Sharpe of "long coffee after La Niña at lag k months", swept k from 1 to 24.
+      Click any bar to drill into the metrics at that lag.
+    </p>
+
+    <div class="lag-explorer">
+      <div class="equity-chart-wrap" id="lag-chart-wrap">
+        <canvas id="lag-chart"></canvas>
+      </div>
+      <aside class="lag-detail">
+        <div class="selected-lag" id="lag-num">11</div>
+        <div class="selected-label">Months of ENSO anomaly lag</div>
+        <div class="lag-stat-row"><span class="l">Sharpe</span> <span class="v" id="lag-sharpe">—</span></div>
+        <div class="lag-stat-row"><span class="l">t-statistic</span> <span class="v" id="lag-t">—</span></div>
+        <div class="lag-stat-row"><span class="l">Hit rate</span> <span class="v" id="lag-hit">—</span></div>
+        <div class="lag-stat-row"><span class="l">N active</span> <span class="v" id="lag-n">—</span></div>
+        <div class="lag-stat-row"><span class="l">Verdict</span> <span class="v" id="lag-verdict">—</span></div>
+        <p style="font-size:12px; color:var(--grey); margin-top:14px; line-height:1.55;">
+          Negative Sharpe with |t| &ge; 2 = inverted academic claim works. The
+          consistency across lags 8&ndash;15 months argues the reversal is real,
+          not a single-point fluke.
+        </p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ENSO TIMELINE ============ -->
+<section class="body alt" id="enso">
+  <div class="container">
+    <h2 class="section"><span class="num">04</span>ENSO Backdrop &amp; NG Seasonality</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      The ONI anomaly drove all four ENSO-based predictors. The seasonality below
+      shows why "shorting NG post-peak hurricane" loses money: NG mean returns
+      are <em>positive</em> in Sep and Oct.
+    </p>
+
+    <h3>ENSO state, 1990–2026 (NOAA ONI)</h3>
+    <div class="equity-chart-wrap" id="enso-chart-wrap"><canvas id="enso-chart"></canvas></div>
+
+    <h3 style="margin-top: 40px;">Natural gas — mean monthly log return</h3>
+    <div class="equity-chart-wrap" id="seasonal-chart-wrap"><canvas id="seasonal-chart"></canvas></div>
+  </div>
+</section>
+
+<!-- ============ USAGE ============ -->
+<section class="body" id="usage">
+  <div class="container">
+    <h2 class="section"><span class="num">05</span>Using Forecast Revisions</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      Three concrete modes, in increasing order of confidence required.
+    </p>
+
+    <div class="cards">
+      <div class="card">
+        <span class="step">A</span>
+        <h4>Programmable predictor</h4>
+        <p>Convert any forecast revision into a +1 / 0 / −1 position and backtest with the shared harness. Most will be noise; some real signals exist.</p>
+      </div>
+      <div class="card">
+        <span class="step">B</span>
+        <h4>Sizing / timing filter</h4>
+        <p>Use predictor output as a multiplier on an existing fundamental position. Lets you scale exposure 0.5×–1.5× by signal strength.</p>
+      </div>
+      <div class="card">
+        <span class="step">C</span>
+        <h4>Event-risk timing</h4>
+        <p>Flatten or hedge before known NOAA outlook releases. Nature Comms (2024) documents $12M/year of options premium around these dates alone.</p>
+      </div>
+    </div>
+
+    <h3>Key release dates</h3>
+    <table class="scoreboard" style="margin-top: 10px;">
+      <thead><tr><th>Date</th><th>Release</th><th>Primary impact</th></tr></thead>
+      <tbody>
+        <tr><td>2nd Thursday monthly, ~9 AM ET</td><td>NOAA ENSO Diagnostic Discussion</td><td>Softs + winter NG</td></tr>
+        <tr><td>Daily, 3 PM ET</td><td>CPC 6–10 / 8–14 day outlook</td><td>NG front-month</td></tr>
+        <tr><td>Mid-October annually</td><td>CPC Winter Outlook</td><td>Major NG repricing</td></tr>
+        <tr><td>5/11 AM &amp; PM ET (Jun–Nov)</td><td>NHC tropical advisory</td><td>NG, RBOB</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <div class="lbl">Test before invert</div>
+      <p>
+        Two of the academic claims in this work fired in the <em>opposite</em>
+        direction. Never invert based on a hunch — run the literal academic
+        strategy first, then check whether the inversion is robust to nearby
+        parameter values. If a lag-sensitivity sweep keeps showing reversal,
+        it's more likely real than a single-lucky-lag artifact.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CODE ============ -->
+<section class="body alt" id="code">
+  <div class="container">
+    <h2 class="section"><span class="num">06</span>The Code</h2>
+    <div class="section-rule"></div>
+
+    <p class="lede">
+      Everything in this site is reproducible from a clean Python environment.
+      No paid data, no proprietary feeds.
+    </p>
+
+    <h3>Install &amp; run</h3>
+    <pre><code>pip install yfinance pandas numpy scipy matplotlib
+
+cd weather-predictors/
+python3 run_all.py        # ~30 sec — downloads + backtests all 5 predictors
+python3 make_charts.py    # regenerate charts
+python3 build_site_data.py  # rebuild this site's data.json</code></pre>
+
+    <h3>Add a new predictor</h3>
+    <div class="code-tabs">
+      <button class="code-tab active" data-tab="my">my_predictor.py</button>
+      <button class="code-tab" data-tab="harness">backtest harness</button>
+      <button class="code-tab" data-tab="data">data sources</button>
+    </div>
+    <div class="code-panel active" id="tab-my">
+<pre><code>from lib.data import load_oni, monthly_returns
+from lib.backtest import run_backtest
+import pandas as pd
+
+def build_my_signal():
+    oni = load_oni()
+    sig = pd.Series(0.0, index=oni.index)
+    sig[oni["anom"] &gt;= 1.0] = +1    # strong El Niño → long
+    sig[oni["anom"] &lt;= -1.0] = -1   # strong La Niña → short
+    return sig
+
+result, equity = run_backtest(
+    name="My idea",
+    underlying="CC",
+    signal=build_my_signal(),
+    returns=monthly_returns("CC"),
+    freq="monthly",
+)
+print(result.as_dict())
+# → Sharpe, t-stat, hit rate, max DD, verdict</code></pre>
+    </div>
+    <div class="code-panel" id="tab-harness">
+<pre><code># lib/backtest.py — what run_backtest does
+
+# 1) Align signal with returns on common timeline
+# 2) Shift signal forward by 1 period (no lookahead)
+# 3) Compute strategy return = position × return
+# 4) Annualize: Sharpe × √12 (monthly) or ×1 (annual)
+# 5) Report N, t-stat, p-value, hit rate, max DD, Calmar
+# 6) Assign verdict:
+#      REAL  if |t| ≥ 2 AND |Sharpe| ≥ 0.3
+#      WEAK  if 1 ≤ |t| < 2
+#      NOISE if |t| < 1</code></pre>
+    </div>
+    <div class="code-panel" id="tab-data">
+<pre><code># lib/data.py — all free, all reproducible
+
+# NOAA ONI (1950–present, monthly):
+#   https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt
+
+# HURDAT2 Atlantic tropical cyclones (1851–2024):
+#   https://www.nhc.noaa.gov/data/hurdat/hurdat2-1851-2024-040425.txt
+
+# CSU April pre-season forecasts (1995–2024):
+#   https://tropical.colostate.edu/archive.html
+#   (hardcoded in data.py as CSU_APRIL_FORECAST)
+
+# Commodity futures (2000–present, daily):
+#   yfinance — NG=F, KC=F, CC=F, OJ=F, RB=F
+
+# All series are cached on first load → repeat runs are ~3 sec.</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="grid">
+      <div>
+        <h5>Methodology Caveats</h5>
+        <p>
+          All Sharpe ratios are in-sample, gross of transaction costs, and
+          based on continuous front-month yfinance data (rolls included).
+          Recommended next step: walk-forward validation on 2000–2018 fit
+          window with 2019–2026 holdout.
+        </p>
+      </div>
+      <div>
+        <h5>Data sources</h5>
+        <p>
+          <a href="https://www.cpc.ncep.noaa.gov/data/indices/oni.ascii.txt">NOAA ONI</a><br>
+          <a href="https://www.nhc.noaa.gov/data/hurdat/">HURDAT2</a><br>
+          <a href="https://tropical.colostate.edu/archive.html">CSU April</a><br>
+          <a href="https://finance.yahoo.com">Yahoo Finance</a>
+        </p>
+      </div>
+      <div>
+        <h5>Key references</h5>
+        <p>
+          Roll (1984) — <em>Orange Juice and Weather</em><br>
+          Boudoukh et al. (2007)<br>
+          Nature Communications (2024) — "Financial markets value skillful forecasts"
+        </p>
+      </div>
+    </div>
+    <div class="small">
+      Internal research / not investment advice. Past relationships between
+      weather signals and commodity prices are not guarantees of future
+      performance. Built with /super.
+    </div>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+  // ============ DATA LOADING ============
+  // data.js sets window.DATA = {...}
+  const D = window.DATA;
+
+  // ============ COLOR PALETTE ============
+  const COLORS = {
+    teal: "#2a9d8f", green: "#3aa674", navy: "#1a3a4a",
+    gold: "#c8963e", amber: "#e0a93b", red: "#c0392b",
+    grey: "#7f8c8d", greyLight: "#bdc3c7", inkSoft: "#3d4f5c",
+  };
+
+  const SERIES_META = {
+    "P2.KC.inv":   { label: "P2 KC inverted (REAL)",  color: COLORS.green, group: "inv", curve: "P2.KC.inv" },
+    "P3.post.inv": { label: "P3 NG post inverted (REAL)", color: COLORS.teal, group: "inv", curve: "P3.post.inv" },
+    "P1.NG":       { label: "P1.NG (literal)", color: COLORS.navy, group: "p1", curve: "P1.NG" },
+    "P1.KC":       { label: "P1.KC (literal)", color: COLORS.gold, group: "p1", curve: "P1.KC" },
+    "P1.CC":       { label: "P1.CC (literal)", color: COLORS.amber, group: "p1", curve: "P1.CC" },
+    "P1.OJ":       { label: "P1.OJ (literal)", color: COLORS.red, group: "p1", curve: "P1.OJ" },
+    "BH.NG":       { label: "Buy-and-hold NG", color: COLORS.grey, group: "bh", buyhold: "NG", dash: [4, 3] },
+    "BH.KC":       { label: "Buy-and-hold KC", color: COLORS.greyLight, group: "bh", buyhold: "KC", dash: [4, 3] },
+    "BH.CC":       { label: "Buy-and-hold CC", color: COLORS.greyLight, group: "bh", buyhold: "CC", dash: [4, 3] },
+    "BH.OJ":       { label: "Buy-and-hold OJ", color: COLORS.greyLight, group: "bh", buyhold: "OJ", dash: [4, 3] },
+  };
+
+  // ============ SCOREBOARD ============
+  const VERDICT_TAGS = { "REAL": "real", "WEAK": "weak", "NOISE": "noise", "INSUFFICIENT": "weak" };
+  const tbody = document.getElementById("scoreboard-body");
+  let scoreSort = { col: "sharpe", asc: false };
+  let scoreFilter = "all";
+
+  function renderScoreboard() {
+    let rows = [...D.summary.predictors];
+    rows.sort((a, b) => {
+      const av = a[scoreSort.col], bv = b[scoreSort.col];
+      if (typeof av === "string") return scoreSort.asc ? av.localeCompare(bv) : bv.localeCompare(av);
+      return scoreSort.asc ? av - bv : bv - av;
+    });
+    tbody.innerHTML = rows.map(r => {
+      const dim = scoreFilter !== "all" && r.verdict.toLowerCase() !== scoreFilter ? " dim" : "";
+      const verdictTag = VERDICT_TAGS[r.verdict] || "weak";
+      return `<tr class="row-${r.verdict.toLowerCase()}${dim}">
+        <td>${r.name}</td>
+        <td>${r.asset}</td>
+        <td class="num">${r.n_obs}</td>
+        <td class="num">${r.n_active}</td>
+        <td class="num" style="color:${r.sharpe >= 0 ? COLORS.green : COLORS.red}; font-weight:700">${r.sharpe >= 0 ? "+" : ""}${r.sharpe.toFixed(2)}</td>
+        <td class="num">${r.t_stat >= 0 ? "+" : ""}${r.t_stat.toFixed(2)}</td>
+        <td class="num">${(r.hit * 100).toFixed(1)}</td>
+        <td class="num">${(r.max_dd * 100).toFixed(1)}%</td>
+        <td><span class="tag ${verdictTag}">${r.verdict}</span></td>
+      </tr>`;
+    }).join("");
+
+    // Update sort indicators
+    document.querySelectorAll("#scoreboard-table th.sortable").forEach(th => {
+      th.classList.remove("sorted-asc", "sorted-desc");
+      if (th.dataset.sort === scoreSort.col) {
+        th.classList.add(scoreSort.asc ? "sorted-asc" : "sorted-desc");
+      }
+    });
+  }
+
+  // Header sort clicks
+  document.querySelectorAll("#scoreboard-table th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const col = th.dataset.sort;
+      if (scoreSort.col === col) scoreSort.asc = !scoreSort.asc;
+      else { scoreSort.col = col; scoreSort.asc = false; }
+      renderScoreboard();
+    });
+  });
+
+  // Filter chips
+  const counts = { all: 0, real: 0, weak: 0, noise: 0 };
+  D.summary.predictors.forEach(r => {
+    counts.all++;
+    counts[r.verdict.toLowerCase()] = (counts[r.verdict.toLowerCase()] || 0) + 1;
+  });
+  document.getElementById("cnt-all").textContent = counts.all;
+  document.getElementById("cnt-real").textContent = counts.real || 0;
+  document.getElementById("cnt-weak").textContent = counts.weak || 0;
+  document.getElementById("cnt-noise").textContent = counts.noise || 0;
+
+  document.querySelectorAll(".chip[data-filter]").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.querySelectorAll(".chip[data-filter]").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      scoreFilter = chip.dataset.filter;
+      renderScoreboard();
+    });
+  });
+
+  renderScoreboard();
+
+  // ============ EQUITY EXPLORER ============
+  const equityCtx = document.getElementById("equity-chart").getContext("2d");
+  let equityChart = null;
+  let scaleMode = "linear";
+
+  function buildEquityData() {
+    const checked = [...document.querySelectorAll(".toggle input:checked")].map(i => i.dataset.series);
+    const datasets = [];
+    checked.forEach(key => {
+      const m = SERIES_META[key];
+      if (!m) return;
+      let pts;
+      if (m.buyhold) {
+        pts = D.buyhold[m.buyhold];
+      } else {
+        pts = D.curves[m.curve];
+      }
+      if (!pts) return;
+      datasets.push({
+        label: m.label,
+        data: pts.map(p => ({ x: p.d, y: p.e })),
+        borderColor: m.color,
+        backgroundColor: m.color + "20",
+        borderWidth: 2,
+        borderDash: m.dash || [],
+        pointRadius: 0,
+        tension: 0.15,
+      });
+    });
+    return datasets;
+  }
+
+  function renderEquity() {
+    const datasets = buildEquityData();
+    if (equityChart) equityChart.destroy();
+    equityChart = new Chart(equityCtx, {
+      type: "line",
+      data: { datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: false },
+        scales: {
+          x: { type: "time", time: { unit: "year" },
+               grid: { display: false }, ticks: { color: "#7f8c8d", font: { size: 11 } }},
+          y: { type: scaleMode,
+               grid: { color: "#e8eaec" }, ticks: { color: "#7f8c8d", font: { size: 11 } },
+               title: { display: true, text: "Cumulative equity (1.0 = start)", color: "#7f8c8d", font: { size: 11 } }},
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { font: { size: 11 }, color: "#3d4f5c", boxWidth: 18, boxHeight: 2 }},
+          tooltip: { intersect: false, mode: "index" },
+        },
+      },
+    });
+    updateEquityStats(datasets);
+  }
+
+  function updateEquityStats(datasets) {
+    if (!datasets.length) {
+      document.getElementById("equity-stats").innerHTML = "<span style='color:#7f8c8d'>Toggle a predictor to see stats</span>";
+      return;
+    }
+    const stats = datasets.map(ds => {
+      const pts = ds.data;
+      if (!pts.length) return null;
+      const end = pts[pts.length - 1].y;
+      const start = pts[0].y;
+      const ret = (end / start - 1) * 100;
+      return { name: ds.label, ret, color: ds.borderColor };
+    }).filter(Boolean);
+    document.getElementById("equity-stats").innerHTML = stats.map(s =>
+      `<div class="stat"><div class="v" style="color:${s.color}">${s.ret >= 0 ? "+" : ""}${s.ret.toFixed(1)}%</div><div class="l">${s.name}</div></div>`
+    ).join("");
+  }
+
+  document.querySelectorAll(".toggle input").forEach(cb => cb.addEventListener("change", renderEquity));
+  document.querySelectorAll(".scale-toggle button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".scale-toggle button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      scaleMode = btn.dataset.scale;
+      renderEquity();
+    });
+  });
+
+  renderEquity();
+
+  // ============ LAG SWEEP ============
+  const lagCtx = document.getElementById("lag-chart").getContext("2d");
+  let selectedLag = 11;
+
+  function lagColor(s, t) {
+    if (Math.abs(t) >= 2 && s > 0) return COLORS.green;
+    if (Math.abs(t) >= 2 && s < 0) return COLORS.red;
+    if (Math.abs(t) >= 1) return COLORS.amber;
+    return COLORS.greyLight;
+  }
+
+  const lagChart = new Chart(lagCtx, {
+    type: "bar",
+    data: {
+      labels: D.lag_sweep.map(d => d.lag),
+      datasets: [{
+        data: D.lag_sweep.map(d => d.sharpe),
+        backgroundColor: D.lag_sweep.map(d =>
+          d.lag === selectedLag ? COLORS.navy : lagColor(d.sharpe, d.t_stat)),
+        borderRadius: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      onClick: (evt, els) => {
+        if (els.length) {
+          selectedLag = D.lag_sweep[els[0].index].lag;
+          updateLagDetail();
+          lagChart.data.datasets[0].backgroundColor = D.lag_sweep.map(d =>
+            d.lag === selectedLag ? COLORS.navy : lagColor(d.sharpe, d.t_stat));
+          lagChart.update();
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: "ENSO anomaly lag (months)", color: "#7f8c8d", font: { size: 11 }},
+             grid: { display: false }, ticks: { color: "#7f8c8d", font: { size: 11 } }},
+        y: { title: { display: true, text: "Sharpe (long La Niña-lag → KC)", color: "#7f8c8d", font: { size: 11 }},
+             grid: { color: "#e8eaec" }, ticks: { color: "#7f8c8d", font: { size: 11 } }},
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: (ctx) => {
+            const d = D.lag_sweep[ctx.dataIndex];
+            return [`Lag ${d.lag} mo`, `Sharpe ${d.sharpe >= 0 ? "+" : ""}${d.sharpe.toFixed(2)}`,
+                    `t-stat ${d.t_stat >= 0 ? "+" : ""}${d.t_stat.toFixed(2)}`,
+                    `Hit ${(d.hit_rate * 100).toFixed(1)}%`];
+          },
+        }},
+      },
+    },
+  });
+  function updateLagDetail() {
+    const d = D.lag_sweep.find(x => x.lag === selectedLag);
+    document.getElementById("lag-num").textContent = selectedLag;
+    document.getElementById("lag-sharpe").textContent = (d.sharpe >= 0 ? "+" : "") + d.sharpe.toFixed(3);
+    document.getElementById("lag-t").textContent = (d.t_stat >= 0 ? "+" : "") + d.t_stat.toFixed(2);
+    document.getElementById("lag-hit").textContent = (d.hit_rate * 100).toFixed(1) + "%";
+    document.getElementById("lag-n").textContent = d.n_active;
+    let verdict = "NOISE", verdictColor = COLORS.red;
+    if (Math.abs(d.t_stat) >= 2) { verdict = "REAL"; verdictColor = COLORS.green; }
+    else if (Math.abs(d.t_stat) >= 1) { verdict = "WEAK"; verdictColor = COLORS.amber; }
+    const el = document.getElementById("lag-verdict");
+    el.textContent = verdict;
+    el.style.color = verdictColor;
+  }
+  updateLagDetail();
+
+  // ============ ENSO TIMELINE ============
+  const ensoCtx = document.getElementById("enso-chart").getContext("2d");
+  const ensoData = D.oni.map(p => ({ x: p.d + "-01", y: p.a }));
+  new Chart(ensoCtx, {
+    type: "bar",
+    data: {
+      datasets: [{
+        data: ensoData,
+        backgroundColor: ensoData.map(p => p.y >= 0 ? COLORS.red + "cc" : COLORS.teal + "cc"),
+        borderWidth: 0,
+        barPercentage: 1.0,
+        categoryPercentage: 1.0,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { type: "time", time: { unit: "year" }, grid: { display: false },
+             ticks: { color: "#7f8c8d", font: { size: 10 } }},
+        y: { title: { display: true, text: "ONI anomaly (°C)", color: "#7f8c8d", font: { size: 11 }},
+             grid: { color: "#e8eaec" }, ticks: { color: "#7f8c8d", font: { size: 10 } }},
+      },
+      plugins: { legend: { display: false }, tooltip: { displayColors: false }},
+    },
+  });
+  // ============ NG SEASONAL ============
+  const seasonalCtx = document.getElementById("seasonal-chart").getContext("2d");
+  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  new Chart(seasonalCtx, {
+    type: "bar",
+    data: {
+      labels: monthNames,
+      datasets: [{
+        data: D.ng_seasonal.map(s => s.mean),
+        backgroundColor: D.ng_seasonal.map(s => s.mean >= 0 ? COLORS.green : COLORS.red),
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: {
+        x: { grid: { display: false }, ticks: { color: "#7f8c8d" }},
+        y: { title: { display: true, text: "Mean monthly log return (%)", color: "#7f8c8d", font: { size: 11 }},
+             grid: { color: "#e8eaec" }, ticks: { color: "#7f8c8d" }},
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: (ctx) => {
+            const s = D.ng_seasonal[ctx.dataIndex];
+            return [`${monthNames[s.month - 1]}: ${s.mean >= 0 ? "+" : ""}${s.mean.toFixed(2)}%`,
+                    `±${s.se.toFixed(2)}% (SE, N=${s.n})`];
+          },
+        }},
+      },
+    },
+  });
+  // ============ CODE TABS ============
+  document.querySelectorAll(".code-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".code-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".code-panel").forEach(p => p.classList.remove("active"));
+      tab.classList.add("active");
+      document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+    });
+  });
+</script>
+
+</body>
+</html>
