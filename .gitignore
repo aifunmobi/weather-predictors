@@ -12,8 +12,8 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Streamlit cache
-.streamlit/
+# Streamlit local secrets (theme config is checked in via .streamlit/config.toml)
+.streamlit/secrets.toml
 
 # macOS
 .DS_Store

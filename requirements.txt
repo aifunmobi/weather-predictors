@@ -1,0 +1,10 @@
+# Pinned to versions known to work with the app
+# (versions match what the original development environment used)
+
+streamlit>=1.40,<2.0
+pandas>=2.2,<3.0
+numpy>=1.26,<3.0
+scipy>=1.13,<2.0
+plotly>=5.20,<6.0
+matplotlib>=3.9,<4.0
+yfinance>=0.2.40,<1.0

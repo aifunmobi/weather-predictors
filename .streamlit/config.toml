@@ -1,0 +1,13 @@
+[theme]
+primaryColor = "#1a5e5b"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f6f8f8"
+textColor = "#2c3e50"
+font = "sans serif"
+
+[server]
+# Allow data refresh on file changes (default)
+runOnSave = true
+
+[browser]
+gatherUsageStats = false
