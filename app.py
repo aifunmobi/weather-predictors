@@ -797,8 +797,17 @@ def page_walk_forward():
             x=eq.index, y=eq.values, name=label,
             line=dict(color=c, width=1.6), mode="lines",
         ))
-    fig.add_vline(x=split_date, line_dash="dash", line_color="#444",
-                  annotation_text="IS / OOS split", annotation_position="top")
+    # Workaround for a Plotly bug: add_vline(annotation_text=...) on a date-axis
+    # internally calls sum(x) over the line's x-values, which fails for any
+    # non-numeric x (Timestamps, strings, datetimes). We add the line and the
+    # annotation as separate primitives to bypass that internal path.
+    fig.add_shape(type="line",
+                  x0=split_date, x1=split_date, xref="x",
+                  y0=0, y1=1, yref="paper",
+                  line=dict(color="#444", dash="dash", width=1.2))
+    fig.add_annotation(x=split_date, y=1.0, xref="x", yref="paper",
+                       text="IS / OOS split", showarrow=False,
+                       yshift=10, font=dict(color="#444", size=11))
     fig.add_hline(y=1.0, line_color="#bbb", line_width=0.5, line_dash="dot")
     fig.update_layout(
         title="Per-predictor cumulative equity (literal academic direction, no inversion)",
